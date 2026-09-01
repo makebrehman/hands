@@ -319,6 +319,19 @@ async function callTogetherAI(
     if (done) break
 
     const chunk = decoder.decode(value, { stream: true })
+    
+    if (chunk.trim().startsWith("{")) {
+      try {
+        const errJson = JSON.parse(chunk)
+        if (errJson.error) {
+          const errMsg = errJson.error.message || JSON.stringify(errJson.error)
+          fullText += `\n[FATAL API ERROR: ${errMsg}]\n`
+          onChunk(`\n[FATAL API ERROR: ${errMsg}]\n`)
+          break
+        }
+      } catch {}
+    }
+
     const lines = chunk.split("\n")
 
     for (const line of lines) {
@@ -328,6 +341,12 @@ async function callTogetherAI(
 
       try {
         const json = JSON.parse(data)
+        if (json.error) {
+          const errMsg = json.error.message || JSON.stringify(json.error)
+          fullText += `\n[STREAM API ERROR: ${errMsg}]\n`
+          onChunk(`\n[STREAM API ERROR: ${errMsg}]\n`)
+          continue
+        }
         const content = json.choices?.[0]?.delta?.content
         if (content) {
           fullText += content
@@ -335,6 +354,12 @@ async function callTogetherAI(
         }
       } catch {}
     }
+  }
+
+  if (!fullText.trim()) {
+    const fallbackMsg = "[SYSTEM ERROR: The API returned an entirely blank response. The model likely crashed or silently rejected the image.]"
+    fullText = fallbackMsg
+    onChunk(fallbackMsg)
   }
 
   onDone(fullText)
