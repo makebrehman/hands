@@ -328,16 +328,18 @@ async function callTogetherAI(
   const reader = response.body!.getReader()
   const decoder = new TextDecoder("utf-8")
   let fullText = ""
+  let buffer = ""
 
   while (true) {
     const { done, value } = await reader.read()
     if (done) break
 
     const chunk = decoder.decode(value, { stream: true })
-    
-    if (chunk.trim().startsWith("{")) {
+    buffer += chunk
+
+    if (buffer.trim().startsWith("{") && !buffer.includes("data: ")) {
       try {
-        const errJson = JSON.parse(chunk)
+        const errJson = JSON.parse(buffer)
         if (errJson.error) {
           const errMsg = errJson.error.message || JSON.stringify(errJson.error)
           fullText += `\n[FATAL API ERROR: ${errMsg}]\n`
@@ -347,11 +349,13 @@ async function callTogetherAI(
       } catch {}
     }
 
-    const lines = chunk.split("\n")
+    const lines = buffer.split("\n")
+    buffer = lines.pop() || ""
 
     for (const line of lines) {
-      if (!line.startsWith("data: ")) continue
-      const data = line.slice(6).trim()
+      const trimmed = line.trim()
+      if (!trimmed.startsWith("data: ")) continue
+      const data = trimmed.slice(6).trim()
       if (data === "[DONE]") continue
 
       try {
@@ -367,9 +371,12 @@ async function callTogetherAI(
           fullText += content
           onChunk(content)
         }
-      } catch {}
+      } catch (e) {
+        console.warn("SSE JSON Parse Error for data:", data, e)
+      }
     }
   }
+
 
   if (!fullText.trim()) {
     const fallbackMsg = "[SYSTEM ERROR: The API returned an entirely blank response. The model likely crashed or silently rejected the image.]"
