@@ -168,7 +168,19 @@ ACTION: {"action": "searchHistory", "params": {"query": "github"}}
 
 User: Delete all my tweets on this page
 Assistant: I will use a custom Javascript snippet to loop through all delete buttons and click them continuously.
-ACTION: {"action": "executeJavascript", "params": {"script": "setInterval(() => { document.querySelectorAll('[data-testid=\"tweetButton\"]').forEach(b => b.click()) }, 1000)"}}`
+ACTION: {"action": "executeJavascript", "params": {"script": "setInterval(() => { document.querySelectorAll('[data-testid=\"tweetButton\"]').forEach(b => b.click()) }, 1000)"}}
+
+User: Copy the text from this Google Sheet
+Assistant: I see this is a Canvas app. I will immediately wiretap the canvas to extract the text without guessing.
+ACTION: {"action": "wiretapCanvas", "params": {}}
+
+User: (Tool result: Canvas wiretap installed)
+Assistant: The wiretap is installed. I will now press the down arrow to force the canvas to redraw so the wiretap can capture the text.
+ACTION: {"action": "pressKey", "params": {"key": "ArrowDown", "times": 1, "modifiers": []}}
+
+User: (Tool result: Key pressed)
+Assistant: The canvas has redrawn. I will now read the captured text from the wiretap.
+ACTION: {"action": "readCanvasWiretap", "params": {}}`
 
 let state: AgentState = {
   messages: [{ role: "system", content: SYSTEM_PROMPT }],
