@@ -49,6 +49,7 @@ ACTION: {"action": "ACTION_NAME", "params": {...}}
 Available actions:
 ACTION: {"action": "navigate", "params": {"url": "https://example.com"}}
 ACTION: {"action": "click", "params": {"x": 500, "y": 300}}
+ACTION: {"action": "clickElement", "params": {"id": 12}}
 ACTION: {"action": "type", "params": {"text": "hello world"}}
 ACTION: {"action": "pressKey", "params": {"key": "Backspace", "times": 18, "modifiers": []}}
 ACTION: {"action": "scroll", "params": {"x": 0, "y": 300, "direction": "down"}}
@@ -116,12 +117,12 @@ Assistant: I will scroll down the page to reveal more content.
 ACTION: {"action": "scroll", "params": {"x": 0, "y": 500, "direction": "down"}}
 
 User: Click the login button
-Assistant: I will take a screenshot to find the exact coordinates of the login button.
+Assistant: I will take a screenshot to find the exact ID of the login button.
 ACTION: {"action": "screenshot", "params": {}}
 
 User: (Screenshot provided)
-Assistant: I have the coordinates of the login button, now I will click it.
-ACTION: {"action": "click", "params": {"x": 800, "y": 150}}
+Assistant: I see the login button has the number 15 over it, so I will click element 15.
+ACTION: {"action": "clickElement", "params": {"id": 15}}
 
 User: Type my email test@example.com
 Assistant: I will type the email into the currently focused input field.
@@ -351,6 +352,25 @@ async function actionClick(x: number, y: number) {
   await cdpSend("Input.dispatchMouseEvent", { type: "mousePressed", button: "left", clickCount: 1, x, y })
   await cdpSend("Input.dispatchMouseEvent", { type: "mouseReleased", button: "left", clickCount: 1, x, y })
   return `Clicked at (${x}, ${y})`
+}
+
+
+async function actionClickElement(id: number) {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+  if (!tab?.id) return "No active tab found"
+
+  const coordResult = await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: () => (window as any).__phillsCoords
+  })
+
+  const coords = coordResult[0]?.result || []
+  const element = coords[id - 1]
+  
+  if (!element) return `Error: Element ID ${id} not found.`
+  
+  await actionClick(element.x, element.y)
+  return `Clicked element [${id}] at (${element.x}, ${element.y})`
 }
 
 async function actionType(text: string) {
@@ -700,11 +720,7 @@ async function actionLabelPage(): Promise<string> {
   })
 
   const coords = coordResult[0]?.result || []
-  const summary = coords
-    .map((c: any, i: number) => `[${i + 1}] ${c.tag} "${c.text}" @ (${c.x}, ${c.y})`)
-    .join("\n")
-
-  return `Labeled ${coords.length} DOM elements.\nA 5x5 coordinate grid is also rendered on the screenshot. If you need to click on a Canvas element (like Google Sheets) or an unlabeled area, estimate the x,y coordinates by looking at the nearest grid numbers (e.g. 500,300).\n\nLabeled elements:\n${summary}`
+  return `Screenshot taken with ${coords.length} numbered boxes drawn over interactive elements.\nA 5x5 coordinate grid is also rendered for Canvas areas. To click a numbered box, use the 'clickElement' tool. To click an unlabeled Canvas area, use the 'click' tool with estimated x,y coordinates.`
 }
 
 async function actionCheckDownloads(): Promise<string> {
@@ -795,6 +811,8 @@ async function executeTool(
   switch (action) {
     case "click":
       return { result: await actionClick(params.x, params.y) }
+    case "clickElement":
+      return { result: await actionClickElement(params.id) }
     case "type":
       return { result: await actionType(params.text) }
     case "pressKey":
