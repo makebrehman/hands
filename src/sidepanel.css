@@ -1,4 +1,4 @@
-/* Phills — Side Panel Styles */
+/* Hands — Side Panel Styles */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
@@ -41,7 +41,7 @@ body {
 
 /* ─── ROOT ────────────────────────────────────────────── */
 
-.phills-root {
+.hands-root {
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -51,7 +51,7 @@ body {
 
 /* ─── HEADER ──────────────────────────────────────────── */
 
-.phills-header {
+.hands-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -61,13 +61,13 @@ body {
   background: var(--bg);
 }
 
-.phills-logo {
+.hands-logo {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.phills-logo-dot {
+.hands-logo-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -81,14 +81,14 @@ body {
   50% { opacity: 0.4; }
 }
 
-.phills-logo-name {
+.hands-logo-name {
   font-weight: 600;
   font-size: 14px;
   color: var(--text);
   letter-spacing: 0.02em;
 }
 
-.phills-msg-count {
+.hands-msg-count {
   font-size: 10px;
   color: var(--text-dim);
   background: var(--bg-3);
@@ -96,12 +96,12 @@ body {
   border-radius: 10px;
 }
 
-.phills-header-actions {
+.hands-header-actions {
   display: flex;
   gap: 4px;
 }
 
-.phills-icon-btn {
+.hands-icon-btn {
   background: none;
   border: none;
   color: var(--text-dim);
@@ -113,18 +113,18 @@ body {
   line-height: 1;
 }
 
-.phills-icon-btn:hover {
+.hands-icon-btn:hover {
   color: var(--text);
   background: var(--bg-3);
 }
 
-.phills-clear-btn:hover {
+.hands-clear-btn:hover {
   color: #f87171;
 }
 
 /* ─── SETTINGS ─────────────────────────────────────────── */
 
-.phills-settings {
+.hands-settings {
   background: var(--bg-2);
   border-bottom: 1px solid var(--border);
   padding: 10px 14px;
@@ -134,20 +134,20 @@ body {
   flex-shrink: 0;
 }
 
-.phills-settings-row {
+.hands-settings-row {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.phills-settings-row label {
+.hands-settings-row label {
   color: var(--text-dim);
   font-size: 11px;
   min-width: 80px;
   flex-shrink: 0;
 }
 
-.phills-settings-row select {
+.hands-settings-row select {
   flex: 1;
   background: var(--bg-3);
   border: 1px solid var(--border);
@@ -161,13 +161,13 @@ body {
   appearance: none;
 }
 
-.phills-settings-row select:focus {
+.hands-settings-row select:focus {
   border-color: var(--accent);
 }
 
 /* ─── MESSAGES ─────────────────────────────────────────── */
 
-.phills-messages {
+.hands-messages {
   flex: 1;
   overflow-y: auto;
   padding: 12px 10px;
@@ -178,17 +178,17 @@ body {
   scrollbar-color: var(--bg-4) transparent;
 }
 
-.phills-messages::-webkit-scrollbar {
+.hands-messages::-webkit-scrollbar {
   width: 4px;
 }
 
-.phills-messages::-webkit-scrollbar-thumb {
+.hands-messages::-webkit-scrollbar-thumb {
   background: var(--bg-4);
   border-radius: 2px;
 }
 
 /* Empty state */
-.phills-empty {
+.hands-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -199,19 +199,19 @@ body {
   text-align: center;
 }
 
-.phills-empty-icon {
+.hands-empty-icon {
   font-size: 24px;
   color: var(--accent);
   opacity: 0.4;
   margin-bottom: 4px;
 }
 
-.phills-empty p {
+.hands-empty p {
   font-size: 13px;
   color: var(--text-dim);
 }
 
-.phills-empty-hint {
+.hands-empty-hint {
   font-size: 11px !important;
   color: var(--text-muted) !important;
   max-width: 200px;
@@ -219,7 +219,7 @@ body {
 }
 
 /* Message rows */
-.phills-msg {
+.hands-msg {
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -231,15 +231,15 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-.phills-msg-user {
+.hands-msg-user {
   align-items: flex-end;
 }
 
-.phills-msg-assistant {
+.hands-msg-assistant {
   align-items: flex-start;
 }
 
-.phills-msg-label {
+.hands-msg-label {
   font-size: 10px;
   color: var(--accent);
   font-weight: 600;
@@ -251,28 +251,28 @@ body {
   text-transform: uppercase;
 }
 
-.phills-msg-bubble {
+.hands-msg-bubble {
   max-width: 92%;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.phills-msg-user .phills-msg-bubble {
+.hands-msg-user .hands-msg-bubble {
   background: var(--user-bg);
   border: 1px solid var(--user-border);
   border-radius: var(--radius) var(--radius-sm) var(--radius) var(--radius);
   padding: 8px 12px;
 }
 
-.phills-msg-assistant .phills-msg-bubble {
+.hands-msg-assistant .hands-msg-bubble {
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm) var(--radius) var(--radius) var(--radius);
   padding: 8px 12px;
 }
 
-.phills-msg-text {
+.hands-msg-text {
   color: var(--text);
   font-size: 13px;
   line-height: 1.55;
@@ -281,7 +281,7 @@ body {
 }
 
 /* Streaming cursor */
-.phills-cursor {
+.hands-cursor {
   display: inline-block;
   width: 6px;
   height: 12px;
@@ -297,20 +297,20 @@ body {
 }
 
 /* Screenshot */
-.phills-screenshot {
+.hands-screenshot {
   margin-top: 6px;
   border-radius: 6px;
   overflow: hidden;
   border: 1px solid var(--border);
 }
 
-.phills-screenshot img {
+.hands-screenshot img {
   width: 100%;
   display: block;
 }
 
 /* Status */
-.phills-status {
+.hands-status {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -320,7 +320,7 @@ body {
   animation: fadeIn 0.2s ease-out;
 }
 
-.phills-status-dot {
+.hands-status-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -331,7 +331,7 @@ body {
 
 /* ─── INPUT AREA ───────────────────────────────────────── */
 
-.phills-input-area {
+.hands-input-area {
   display: flex;
   align-items: flex-end;
   gap: 8px;
@@ -341,7 +341,7 @@ body {
   flex-shrink: 0;
 }
 
-.phills-input {
+.hands-input {
   flex: 1;
   background: var(--bg-2);
   border: 1px solid var(--border);
@@ -360,19 +360,19 @@ body {
   transition: border-color 0.15s;
 }
 
-.phills-input:focus {
+.hands-input:focus {
   border-color: rgba(99,102,241,0.4);
 }
 
-.phills-input::placeholder {
+.hands-input::placeholder {
   color: var(--text-muted);
 }
 
-.phills-input:disabled {
+.hands-input:disabled {
   opacity: 0.5;
 }
 
-.phills-send-btn {
+.hands-send-btn {
   width: 36px;
   height: 36px;
   border-radius: 8px;
@@ -389,24 +389,24 @@ body {
   line-height: 1;
 }
 
-.phills-send-btn:hover:not(:disabled) {
+.hands-send-btn:hover:not(:disabled) {
   background: #818cf8;
   transform: translateY(-1px);
 }
 
-.phills-send-btn:disabled {
+.hands-send-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
 
-.phills-send-loading {
+.hands-send-loading {
   font-size: 18px;
   letter-spacing: -1px;
 }
 
 /* ─── ACTION BADGE & THINKING ─────────────────────────── */
 
-.phills-action-badge {
+.hands-action-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -420,7 +420,7 @@ body {
   letter-spacing: 0.01em;
 }
 
-.phills-thinking {
+.hands-thinking {
   color: var(--text-muted);
   font-style: italic;
   letter-spacing: 2px;

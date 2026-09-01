@@ -39,7 +39,7 @@ export default function SidePanel() {
   // ─── KEEPALIVE PORT ────────────────────────────────────────────────────────
 
   useEffect(() => {
-    portRef.current = chrome.runtime.connect({ name: "phills-keepalive" })
+    portRef.current = chrome.runtime.connect({ name: "hands-keepalive" })
     const heartbeat = setInterval(() => {
       portRef.current?.postMessage({ type: "ping" })
     }, 20000)
@@ -182,7 +182,7 @@ export default function SidePanel() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = "phills-logs.json"
+    a.download = "hands-logs.json"
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -199,29 +199,29 @@ export default function SidePanel() {
   // ─── RENDER ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="phills-root">
+    <div className="hands-root">
       {/* Header */}
-      <div className="phills-header">
-        <div className="phills-logo">
-          <span className="phills-logo-dot" />
-          <span className="phills-logo-name">Phills <span style={{fontSize: '0.5em', opacity: 0.6, verticalAlign: 'middle'}}>v1.4.1</span></span>
-          {msgCount > 1 && <span className="phills-msg-count">{msgCount - 1} msgs</span>}
+      <div className="hands-header">
+        <div className="hands-logo">
+          <span className="hands-logo-dot" />
+          <span className="hands-logo-name">Hands <span style={{fontSize: '0.5em', opacity: 0.6, verticalAlign: 'middle'}}>v1.4.1</span></span>
+          {msgCount > 1 && <span className="hands-msg-count">{msgCount - 1} msgs</span>}
         </div>
-        <div className="phills-header-actions">
+        <div className="hands-header-actions">
           <button
-            className="phills-icon-btn phills-clear-btn"
+            className="hands-icon-btn hands-clear-btn"
             title="Download Logs"
             onClick={downloadLogs}>
             ⬇️
           </button>
           <button
-            className="phills-icon-btn phills-clear-btn"
+            className="hands-icon-btn hands-clear-btn"
             title="New Chat (Clears History)"
             onClick={clearHistory}>
             ➕
           </button>
           <button
-            className="phills-icon-btn"
+            className="hands-icon-btn"
             title="Settings"
             onClick={() => setShowSettings((v) => !v)}>
             ⚙
@@ -231,8 +231,8 @@ export default function SidePanel() {
 
       {/* Settings Panel */}
       {showSettings && (
-        <div className="phills-settings">
-          <div className="phills-setting-group">
+        <div className="hands-settings">
+          <div className="hands-setting-group">
             <label>Model</label>
             <select value={chatModel} onChange={(e) => handleChatModelChange(e.target.value)}>
               {CHAT_MODELS.map((m) => (
@@ -246,24 +246,24 @@ export default function SidePanel() {
       )}
 
       {/* Messages */}
-      <div className="phills-messages">
+      <div className="hands-messages">
         {messages.length === 0 && (
-          <div className="phills-empty">
-            <div className="phills-empty-icon">◆</div>
+          <div className="hands-empty">
+            <div className="hands-empty-icon">◆</div>
             <p>Tell me what to do.</p>
-            <p className="phills-empty-hint">I can click, type, navigate, search history, open tabs, take screenshots, and more.</p>
+            <p className="hands-empty-hint">I can click, type, navigate, search history, open tabs, take screenshots, and more.</p>
           </div>
         )}
 
         {messages.map((msg, i) => (
-          <div key={i} className={`phills-msg phills-msg-${msg.role}`}>
+          <div key={i} className={`hands-msg hands-msg-${msg.role}`}>
             {msg.role === "assistant" && (
-              <div className="phills-msg-label">Phills{msg.isStreaming && <span className="phills-cursor" />}</div>
+              <div className="hands-msg-label">Hands{msg.isStreaming && <span className="hands-cursor" />}</div>
             )}
-            <div className="phills-msg-bubble">
+            <div className="hands-msg-bubble">
               <MessageContent text={msg.text} />
               {msg.screenshot && (
-                <div className="phills-screenshot">
+                <div className="hands-screenshot">
                   <img src={`data:image/jpeg;base64,${msg.screenshot}`} alt="Screenshot" />
                 </div>
               )}
@@ -273,8 +273,8 @@ export default function SidePanel() {
 
         {/* Status bar */}
         {status && (
-          <div className="phills-status">
-            <span className="phills-status-dot" />
+          <div className="hands-status">
+            <span className="hands-status-dot" />
             {status}
           </div>
         )}
@@ -283,11 +283,11 @@ export default function SidePanel() {
       </div>
 
       {/* Input */}
-      <div className="phills-input-area">
+      <div className="hands-input-area">
         <textarea
           ref={inputRef}
-          className="phills-input"
-          placeholder="Tell Phills what to do..."
+          className="hands-input"
+          placeholder="Tell Hands what to do..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -296,7 +296,7 @@ export default function SidePanel() {
         />
         {isLoading ? (
           <button
-            className="phills-send-btn"
+            className="hands-send-btn"
             style={{ backgroundColor: '#dc3545', color: 'white', borderColor: '#dc3545' }}
             title="Force Stop Agent"
             onClick={stopAgent}>
@@ -304,7 +304,7 @@ export default function SidePanel() {
           </button>
         ) : (
           <button
-            className="phills-send-btn"
+            className="hands-send-btn"
             onClick={sendMessage}
             disabled={!input.trim()}>
             ↑
@@ -370,9 +370,9 @@ function MessageContent({ text }: { text: string }) {
   const label = tool ? (ACTION_LABELS[tool.action] || `⚡ ${tool.action}`) : null
 
   return (
-    <div className="phills-msg-text">
+    <div className="hands-msg-text">
       {label && (
-        <span className="phills-action-badge">{label}</span>
+        <span className="hands-action-badge">{label}</span>
       )}
       {hasText && label && <br />}
       {hasText && cleanText.split("\n").map((line, i, arr) => (
@@ -381,7 +381,7 @@ function MessageContent({ text }: { text: string }) {
           {i < arr.length - 1 && <br />}
         </span>
       ))}
-      {!hasText && !label && <span className="phills-thinking">…</span>}
+      {!hasText && !label && <span className="hands-thinking">…</span>}
     </div>
   )
 }

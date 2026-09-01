@@ -1,9 +1,9 @@
 {
-  "name": "phills-agent",
-  "displayName": "Phills",
+  "name": "hands-agent",
+  "displayName": "Hands",
   "version": "1.4.1",
-  "description": "Phills - Your stealth AI browser agent",
-  "author": "Phills Dev",
+  "description": "Hands - Your stealth AI browser agent",
+  "author": "Hands Dev",
   "scripts": {
     "dev": "plasmo dev --no-cs-reload",
     "build": "plasmo build",
@@ -24,7 +24,7 @@
     "typescript": "5.3.3"
   },
   "manifest": {
-    "name": "Phills",
+    "name": "Hands",
     "host_permissions": ["<all_urls>"],
     "permissions": [
       "tabs",

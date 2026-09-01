@@ -1,4 +1,4 @@
-// Phills Background Service Worker
+// Hands Background Service Worker
 // Brain of the extension: manages conversation, CDP, keepalive, and all agent actions
 
 export {}
@@ -37,7 +37,7 @@ interface AgentState {
 
 // ─── STATE ──────────────────────────────────────────────────────────────────
 
-const SYSTEM_PROMPT = `You are Phills, a stealth AI browser agent. You execute browser tasks directly.
+const SYSTEM_PROMPT = `You are Hands, a stealth AI browser agent. You execute browser tasks directly.
 You are equipped with a set of tools to interact with the browser. 
 
 You operate in a continuous reasoning and acting loop (ReAct).
@@ -186,9 +186,9 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
 // Port-based keepalive: while side panel is open, port stays connected
 chrome.runtime.onConnect.addListener((port) => {
-  if (port.name === "phills-keepalive") {
+  if (port.name === "hands-keepalive") {
     port.onDisconnect.addListener(() => {
-      console.log("[Phills] Side panel disconnected")
+      console.log("[Hands] Side panel disconnected")
     })
     port.onMessage.addListener((msg) => {
       if (msg.type === "ping") port.postMessage({ type: "pong" })
@@ -224,11 +224,11 @@ async function ensureDebuggerAttached(tabId: number): Promise<boolean> {
   try {
     await chrome.debugger.attach({ tabId }, "1.3")
     state.attachedTabId = tabId
-    console.log("[Phills] Debugger attached to tab", tabId)
+    console.log("[Hands] Debugger attached to tab", tabId)
     return true
   } catch (e: any) {
     if (!e.message?.includes("Cannot access a chrome:// URL")) {
-      console.error("[Phills] Failed to attach debugger:", e)
+      console.error("[Hands] Failed to attach debugger:", e)
     }
     return false
   }
@@ -503,11 +503,11 @@ async function actionLabelPage(): Promise<string> {
     target: { tabId: tab.id },
     func: () => {
       // Remove old labels and grids
-      document.querySelectorAll(".phills-label, .phills-grid").forEach((el) => el.remove())
+      document.querySelectorAll(".hands-label, .hands-grid").forEach((el) => el.remove())
 
       // Draw spatial coordinate grid for Canvas/unreadable elements
       const gridContainer = document.createElement("div")
-      gridContainer.className = "phills-grid"
+      gridContainer.className = "hands-grid"
       gridContainer.style.cssText = `
         position: fixed;
         top: 0; left: 0; width: 100vw; height: 100vh;
@@ -586,7 +586,7 @@ async function actionLabelPage(): Promise<string> {
       elements.forEach((el, idx) => {
         const rect = el.getBoundingClientRect()
         const label = document.createElement("div")
-        label.className = "phills-label"
+        label.className = "hands-label"
         label.textContent = String(idx + 1)
         label.style.cssText = `
           position: absolute;
@@ -609,7 +609,7 @@ async function actionLabelPage(): Promise<string> {
       })
 
       // Store coords for lookup
-      ;(window as any).__phillsCoords = elements.map((el) => {
+      ;(window as any).__handsCoords = elements.map((el) => {
         const rect = el.getBoundingClientRect()
         
         const center = { x: Math.round(rect.left + rect.width / 2), y: Math.round(rect.top + rect.height / 2) }
@@ -637,14 +637,14 @@ async function actionLabelPage(): Promise<string> {
         }
       })
 
-      return (window as any).__phillsCoords.length
+      return (window as any).__handsCoords.length
     }
   })
 
   // Get the coords back
   const coordResult = await chrome.scripting.executeScript({
     target: { tabId: tab.id },
-    func: () => (window as any).__phillsCoords
+    func: () => (window as any).__handsCoords
   })
 
   const coords = coordResult[0]?.result || []
@@ -835,7 +835,7 @@ async function cleanPageLabels() {
     if (tab?.id) {
       await chrome.scripting.executeScript({
         target: { tabId: tab.id },
-        func: () => document.querySelectorAll(".phills-label").forEach((el) => el.remove())
+        func: () => document.querySelectorAll(".hands-label").forEach((el) => el.remove())
       })
     }
   } catch {}
