@@ -9,7 +9,7 @@ const TOGETHER_API_KEY = "tgp_v1__fiY-6ezozlCJQgq_2Gy8Sj6JpQEcWB25GISWOaB2pE"
 const TOGETHER_API_URL = "https://api.together.xyz/v1/chat/completions"
 
 // Default model - Multimodal ReAct Agent
-const CHAT_MODEL = "zai-org/GLM-5.3-Flash"
+const CHAT_MODEL = "moonshotai/Kimi-K3"
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
@@ -36,6 +36,8 @@ interface AgentState {
 }
 
 // ─── STATE ──────────────────────────────────────────────────────────────────
+
+let lastLabeledCoords: any[] = []
 
 const SYSTEM_PROMPT = `You are Hands, a stealth AI browser agent. You execute browser tasks directly.
 You are equipped with a set of tools to interact with the browser. 
@@ -389,7 +391,8 @@ async function actionClickElement(id: number) {
     func: () => (window as any).__phillsCoords
   })
 
-  const coords = coordResult[0]?.result || []
+  lastLabeledCoords = coordResult[0]?.result || []
+  const coords = lastLabeledCoords
   const element = coords[id - 1]
   
   if (!element) return `Error: Element ID ${id} not found.`
