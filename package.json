@@ -1,11 +1,11 @@
 {
   "name": "phills-agent",
-  "displayName": "Phills agent",
-  "version": "0.0.1",
+  "displayName": "Phills",
+  "version": "1.4.1",
   "description": "Phills - Your stealth AI browser agent",
-  "author": "Plasmo Corp. <foss@plasmo.com>",
+  "author": "Phills Dev",
   "scripts": {
-    "dev": "plasmo dev",
+    "dev": "plasmo dev --no-cs-reload",
     "build": "plasmo build",
     "package": "plasmo package"
   },
@@ -24,11 +24,29 @@
     "typescript": "5.3.3"
   },
   "manifest": {
-    "host_permissions": [
-      "https://*/*"
-    ],
+    "name": "Phills",
+    "host_permissions": ["<all_urls>"],
     "permissions": [
-      "tabs"
-    ]
+      "tabs",
+      "activeTab",
+      "history",
+      "storage",
+      "debugger",
+      "scripting",
+      "sidePanel",
+      "alarms",
+      "clipboardRead",
+      "clipboardWrite",
+      "downloads",
+      "sessions",
+      "topSites",
+      "management",
+      "cookies",
+      "browsingData",
+      "bookmarks"
+    ],
+    "side_panel": {
+      "default_path": "sidepanel.html"
+    }
   }
 }
