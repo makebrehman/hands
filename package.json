@@ -25,7 +25,9 @@
   },
   "manifest": {
     "name": "Hands",
-    "host_permissions": ["<all_urls>"],
+    "host_permissions": [
+      "<all_urls>"
+    ],
     "permissions": [
       "tabs",
       "activeTab",
@@ -43,10 +45,20 @@
       "management",
       "cookies",
       "browsingData",
-      "bookmarks"
+      "bookmarks",
+      "declarativeNetRequest"
     ],
     "side_panel": {
       "default_path": "sidepanel.html"
+    },
+    "declarative_net_request": {
+      "rule_resources": [
+        {
+          "id": "ruleset_1",
+          "enabled": true,
+          "path": "~assets/rules.json"
+        }
+      ]
     }
   }
 }

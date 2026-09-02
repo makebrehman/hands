@@ -9,7 +9,7 @@ const TOGETHER_API_KEY = "tgp_v1__fiY-6ezozlCJQgq_2Gy8Sj6JpQEcWB25GISWOaB2pE"
 const TOGETHER_API_URL = "https://api.together.xyz/v1/chat/completions"
 
 // Default model - Multimodal ReAct Agent
-const CHAT_MODEL = "thinkingmachines/Inkling"
+const CHAT_MODEL = "moonshotai/Kimi-K3"
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
@@ -553,73 +553,19 @@ async function actionSearchHistory(query: string, maxResults: number = 50): Prom
 
 // ─── LABEL PAGE (Set-of-Marks) ───────────────────────────────────────────────
 
-async function actionLabelPage(): Promise<string> {
+async function actionLabelPage(): Promise<any> {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-  if (!tab?.id) return "No active tab found"
+  if (!tab?.id) return { error: "No active tab found" }
 
-  await chrome.scripting.executeScript({
+  const result = await chrome.scripting.executeScript({
     target: { tabId: tab.id },
     func: () => {
-      // Remove old labels and grids
+      // Clean old visible labels if any exist from before
       document.querySelectorAll(".hands-label, .hands-grid").forEach((el) => el.remove())
 
-      // Draw spatial coordinate grid for Canvas/unreadable elements
-      const gridContainer = document.createElement("div")
-      gridContainer.className = "hands-grid"
-      gridContainer.style.cssText = `
-        position: fixed;
-        top: 0; left: 0; width: 100vw; height: 100vh;
-        pointer-events: none;
-        z-index: 2147483646; // just behind labels
-      `
-      
-      const cols = 5;
-      const rows = 5;
-      const cellWidth = window.innerWidth / cols;
-      const cellHeight = window.innerHeight / rows;
-
-      // Create a visual grid with coordinate text
-      let gridSummary = "Grid overlay active (5x5). Approximate cell coordinates (x, y):\n";
-
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          const x = Math.round(c * cellWidth + cellWidth / 2);
-          const y = Math.round(r * cellHeight + cellHeight / 2);
-          
-          // Draw grid lines (subtle)
-          const cell = document.createElement("div");
-          cell.style.cssText = `
-            position: absolute;
-            left: ${c * cellWidth}px;
-            top: ${r * cellHeight}px;
-            width: ${cellWidth}px;
-            height: ${cellHeight}px;
-            box-sizing: border-box;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          `;
-          
-          // Draw coordinate text inside
-          const text = document.createElement("span");
-          text.textContent = `${x},${y}`;
-          text.style.cssText = `
-            color: #ffffff;
-            font-size: 12px;
-            font-weight: bold;
-            font-family: monospace;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 3px 6px;
-            border-radius: 4px;
-          `;
-          
-          cell.appendChild(text);
-          gridContainer.appendChild(cell);
-        }
-      }
-      
-      document.body.appendChild(gridContainer);
-
+      const dpr = window.devicePixelRatio || 1;
+      const width = window.innerWidth;
+      const height = window.innerHeight;
 
       const SELECTORS = [
         "a", "button", "input", "select", "textarea",
@@ -641,32 +587,7 @@ async function actionLabelPage(): Promise<string> {
           )
         })
 
-      elements.forEach((el, idx) => {
-        const rect = el.getBoundingClientRect()
-        const label = document.createElement("div")
-        label.className = "hands-label"
-        label.textContent = String(idx + 1)
-        label.style.cssText = `
-          position: absolute;
-          left: ${rect.left + window.scrollX}px;
-          top: ${rect.top + window.scrollY}px;
-          background: #6366f1;
-          color: white;
-          font-size: 10px;
-          font-weight: bold;
-          font-family: monospace;
-          padding: 1px 4px;
-          border-radius: 3px;
-          z-index: 2147483647;
-          pointer-events: none;
-          line-height: 14px;
-          min-width: 16px;
-          text-align: center;
-        `
-        document.body.appendChild(label)
-      })
-
-      // Store coords for lookup
+      // Store coords for lookup and for background drawing
       ;(window as any).__handsCoords = elements.map((el) => {
         const rect = el.getBoundingClientRect()
         
@@ -690,23 +611,94 @@ async function actionLabelPage(): Promise<string> {
         return {
           x: bestPoint.x,
           y: bestPoint.y,
+          rectLeft: rect.left,
+          rectTop: rect.top,
           tag: el.tagName,
           text: (el as HTMLElement).innerText?.slice(0, 40) || (el as HTMLInputElement).placeholder || ""
         }
       })
 
-      return (window as any).__handsCoords.length
+      return { dpr, width, height, coords: (window as any).__handsCoords };
     }
   })
 
-  // Get the coords back
-  const coordResult = await chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    func: () => (window as any).__handsCoords
-  })
+  return result[0]?.result || { error: "Failed to gather labels" }
+}
 
-  const coords = coordResult[0]?.result || []
-  return `Screenshot taken with ${coords.length} numbered boxes drawn over interactive elements.\nA 5x5 coordinate grid is also rendered for Canvas areas. To click a numbered box, use the 'clickElement' tool. To click an unlabeled Canvas area, use the 'click' tool with estimated x,y coordinates.`
+async function drawStealthLabels(b64: string, data: any): Promise<string> {
+  try {
+    const res = await fetch(`data:image/jpeg;base64,${b64}`)
+    const blob = await res.blob()
+    const bitmap = await createImageBitmap(blob)
+    
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
+    const ctx = canvas.getContext('2d') as OffscreenCanvasRenderingContext2D
+    ctx.drawImage(bitmap, 0, 0)
+    
+    const dpr = data.dpr || 1
+    
+    // Draw 5x5 grid
+    const cols = 5;
+    const rows = 5;
+    const cellWidth = (data.width * dpr) / cols;
+    const cellHeight = (data.height * dpr) / rows;
+    
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(0,0,0,0.1)";
+    
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const x = Math.round(c * cellWidth);
+        const y = Math.round(r * cellHeight);
+        ctx.strokeRect(x, y, cellWidth, cellHeight);
+        
+        const labelX = x + cellWidth / 2;
+        const labelY = y + cellHeight / 2;
+        const realX = Math.round((c * (data.width/cols)) + (data.width/cols)/2);
+        const realY = Math.round((r * (data.height/rows)) + (data.height/rows)/2);
+        
+        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+        ctx.fillRect(labelX - 25, labelY - 10, 50, 20);
+        ctx.fillStyle = "white";
+        ctx.font = "bold 12px monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(`${realX},${realY}`, labelX, labelY);
+      }
+    }
+    
+    // Draw Labels
+    ctx.font = "bold 10px monospace";
+    data.coords.forEach((item: any, idx: number) => {
+      const text = String(idx + 1);
+      const textWidth = ctx.measureText(text).width;
+      const boxWidth = Math.max(16, textWidth + 8);
+      const boxHeight = 16;
+      
+      const px = item.rectLeft * dpr;
+      const py = item.rectTop * dpr;
+      
+      ctx.fillStyle = "#6366f1";
+      ctx.fillRect(px, py, boxWidth, boxHeight);
+      
+      ctx.fillStyle = "white";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, px + boxWidth / 2, py + boxHeight / 2);
+    })
+    
+    const outBlob = await canvas.convertToBlob({ type: "image/jpeg", quality: 0.6 })
+    return new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        resolve((reader.result as string).split(',')[1]);
+      };
+      reader.readAsDataURL(outBlob);
+    })
+  } catch(e) {
+    console.error("Stealth draw failed:", e)
+    return b64 
+  }
 }
 
 async function actionCheckDownloads(): Promise<string> {
@@ -806,9 +798,18 @@ async function executeTool(
     case "scroll":
       return { result: await actionScroll(params.x || 0, params.y || 300, params.direction || "down") }
     case "screenshot": {
-      const summary = await actionLabelPage()
-      const b64 = await actionScreenshot()
-      return { result: `Screenshot taken with labeled elements:\n${summary}`, screenshotBase64: b64 }
+      const data = await actionLabelPage()
+      if (data.error) {
+        const b64 = await actionScreenshot()
+        return { result: data.error, screenshotBase64: b64 }
+      }
+      
+      const cleanB64 = await actionScreenshot()
+      const finalB64 = await drawStealthLabels(cleanB64, data)
+      
+      const summary = `Screenshot taken with ${data.coords?.length || 0} numbered boxes drawn over interactive elements.\nA 5x5 coordinate grid is also rendered for Canvas areas. To click a numbered box, use the 'clickElement' tool. To click an unlabeled Canvas area, use the 'click' tool with estimated x,y coordinates.`
+      
+      return { result: summary, screenshotBase64: finalB64 }
     }
     case "navigate":
       return { result: await actionNavigate(params.url) }
