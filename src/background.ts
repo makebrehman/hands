@@ -573,7 +573,9 @@ async function actionReadCanvasWiretap(): Promise<string> {
     target: { tabId: tab.id },
     world: "MAIN",
     func: () => {
-      return (window as any).__canvasText || []
+      const texts = (window as any).__canvasText || [];
+        (window as any).__canvasText = [];
+        return texts;
     }
   })
 
