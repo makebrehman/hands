@@ -569,6 +569,7 @@ async function actionWiretapCanvas(): Promise<string> {
 }
 
 async function actionReadCanvasWiretap(): Promise<string> {
+  await new Promise(r => setTimeout(r, 600)); // Let the canvas finish redrawing before reading
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
   if (!tab?.id) return "No active tab found"
 
@@ -860,6 +861,7 @@ async function executeTool(
     case "scroll":
       return { result: await actionScroll(params.x || 0, params.y || 300, params.direction || "down") }
     case "screenshot": {
+      await new Promise(r => setTimeout(r, 800)); // Let the UI settle before capturing
       const data = await actionLabelPage()
       if (data.error) {
         const b64 = await actionScreenshot()
