@@ -82,7 +82,12 @@ Available actions:
 
 RULES:
   - STRATEGIC HIERARCHY OF OPERATIONS: You must internalize and strictly follow this order of operations based on the type of website:
-  1. For Canvas Apps (Google Sheets, Figma): The DOM is empty here. You MUST use 'wiretapCanvas' to read the screen -> then use site-specific App Formulas and App Shortcuts to interact/move data (e.g. ARRAYFORMULA, Shift+F11) -> ONLY use mouse clicks ('click' using the 5x5 black coordinate grid from screenshots) as an absolute last resort.
+  1. For Canvas Apps (Google Sheets, Figma): The DOM is empty here. Follow this sub-hierarchy:
+      a) 'wiretapCanvas' to read the screen.
+      b) App-specific Formulas (e.g. =ARRAYFORMULA) - This is the MOST reliable way to move data.
+      c) App-specific Shortcuts (e.g. Shift+F11 to create sheets).
+      d) General Shortcuts (e.g. Ctrl+C, Ctrl+V) - Keep this as a fallback because browser clipboard automation is highly restrictive.
+      e) Manual mouse clicks ('click' using the 5x5 black coordinate grid) - Absolute last resort.
   2. For Standard HTML/DOM Web (95% of sites): You MUST use 'executeJavascript' (DOM) as your primary weapon to read structure, find buttons, and click them (this bypasses invisible ad shields). If JS fails, use native site-specific Shortcuts (e.g. Ctrl+C/V). ONLY use mouse clicks ('click'/'clickElement') as a last resort.
   - JSON ONLY: You MUST NOT output any conversational text before or after your JSON block. ALL reasoning must go inside the "thought" key.
 - THINK FIRST AND PLAN: You MUST formulate a strategic plan before acting. Explain your long-term plan, what step you are currently on, and your logic inside the "thought" string. Do not just blindly react.
@@ -135,8 +140,8 @@ User: Click exactly at the top left corner of the video player
 User: Type my email address
 {"thought": "I will type the email address into the currently focused input field.", "action": "type", "params": {"text": "user@example.com"}}
 
-User: Copy this text and paste it into a new sheet (Canvas App)
-{"thought": "In Canvas apps, I must use Keyboard Shortcuts. I will press Ctrl+C, then Shift+F11 to create a new sheet, then Ctrl+V.", "action": "pressKey", "params": {"key": "c", "times": 1, "modifiers": ["Control"]}}
+User: Copy the data from the first sheet into a new sheet (Canvas App)
+{"thought": "In Canvas apps, app-specific formulas are more reliable than general Ctrl+C/V shortcuts. I will press Shift+F11 to create a new sheet, then type an ARRAYFORMULA to pull the data directly.", "action": "pressKey", "params": {"key": "F11", "times": 1, "modifiers": ["Shift"]}}
 
 User: Read all the text on this standard HTML article
 {"thought": "This is a standard HTML site, so I can extract all the text directly from the DOM.", "action": "readPage", "params": {}}
@@ -419,9 +424,9 @@ async function actionClickElement(id: number) {
 
 async function actionType(text: string) {
   for (const char of text) {
-    await cdpSend("Input.dispatchKeyEvent", { type: "keyDown", text: char, unmodifiedText: char })
+    await cdpSend("Input.dispatchKeyEvent", { type: "keyDown", key: char })
     await cdpSend("Input.dispatchKeyEvent", { type: "char", text: char, unmodifiedText: char })
-    await cdpSend("Input.dispatchKeyEvent", { type: "keyUp", text: char, unmodifiedText: char })
+    await cdpSend("Input.dispatchKeyEvent", { type: "keyUp", key: char })
     await new Promise(r => setTimeout(r, 20)) // tiny delay to let canvas process
   }
   await new Promise(r => setTimeout(r, 600));
