@@ -142,7 +142,7 @@ User: Read all the text on this standard HTML article
 {"thought": "This is a standard HTML site, so I can extract all the text directly from the DOM.", "action": "readPage", "params": {}}
 
 User: Delete all my tweets on this page
-{"thought": "I will use executeJavascript to run a script that clicks all delete buttons, which is much faster than doing it manually.", "action": "executeJavascript", "params": {"script": "document.querySelectorAll('[data-testid="tweetButton"]').forEach(b => b.click())"}}
+{"thought": "I will use executeJavascript to run a script that clicks all delete buttons, which is much faster than doing it manually.", "action": "executeJavascript", "params": {"script": "document.querySelectorAll('[data-testid=\\\"tweetButton\\\"]').forEach(b => b.click())"}}
 
 User: Check if my download finished
 {"thought": "I will query the browser's download manager.", "action": "checkDownloads", "params": {}}
