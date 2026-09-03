@@ -99,29 +99,83 @@ RULES:
 
 EXAMPLES:
 
-User: Open spotify
-{"thought": "I will open Spotify in a new tab.", "action": "openTab", "params": {"url": "https://open.spotify.com"}}
+User: Go to Amazon.
+{"thought": "I need to load a new URL in the current tab.", "action": "navigate", "params": {"url": "https://amazon.com"}}
 
-User: Download this song as mp3
-{"thought": "I will navigate to a Spotify to MP3 converter site to download this track.", "action": "navigate", "params": {"url": "https://spotifydown.com"}}
-
-User: Delete all my tweets on this page
-{"thought": "I will use a custom Javascript snippet to loop through all delete buttons and click them continuously.", "action": "executeJavascript", "params": {"script": "setInterval(() => { document.querySelectorAll('[data-testid=\"tweetButton\"]').forEach(b => b.click()) }, 1000)"}}
-
-User: Click the login button
-{"thought": "I will take a screenshot to find the exact ID of the login button.", "action": "screenshot", "params": {}}
-
-User: (Screenshot provided)
-{"thought": "I see the login button has the number 15 over it, so I will click element 15.", "action": "clickElement", "params": {"id": 15}}
+User: Open spotify in a new tab.
+{"thought": "I will open Spotify in a new background tab.", "action": "openTab", "params": {"url": "https://open.spotify.com"}}
 
 User: Switch to the YouTube tab
-{"thought": "I need to find the YouTube tab to continue our task. I will fetch the list of open tabs to find the YouTube tab ID.", "action": "getTabs", "params": {}}
+{"thought": "I need to find the YouTube tab ID first.", "action": "getTabs", "params": {}}
 
-User: (Tabs provided)
-{"thought": "I found the YouTube tab with ID 456, I will switch to it now so I can interact with the video player.", "action": "switchTab", "params": {"tabId": 456}}
+User: (Tabs provided showing YouTube is ID 456)
+{"thought": "I found the YouTube tab. I will switch the browser's active tab to it.", "action": "switchTab", "params": {"tabId": 456}}
 
-User: Copy the text from this Google Sheet
-{"thought": "I see this is a Canvas app. I will immediately wiretap the canvas to extract the text without guessing.", "action": "wiretapCanvas", "params": {}}`
+User: Close this tab
+{"thought": "I will close the current tab. I need to know its ID, or I can just use a shortcut. Wait, I will use closeTab on the active tab ID. If I don't know it, I will fetch getTabs first. Let's assume it's tab 123.", "action": "closeTab", "params": {"tabId": 123}}
+
+User: Reopen the tab I just closed
+{"thought": "I need to find the recently closed tabs first.", "action": "getRecentlyClosedTabs", "params": {}}
+
+User: (List provided showing session ID)
+{"thought": "I will restore the closed tab using its session ID.", "action": "restoreTab", "params": {"sessionId": "example_id"}}
+
+User: Scroll down to read more
+{"thought": "I need to scroll the page vertically.", "action": "scroll", "params": {"x": 0, "y": 800, "direction": "down"}}
+
+User: Click the login button
+{"thought": "I must take a screenshot FIRST to find the exact element ID of the login button.", "action": "screenshot", "params": {}}
+
+User: (Screenshot provided showing login button is ID 15)
+{"thought": "I see the login button has the number 15 over it, so I will click element 15.", "action": "clickElement", "params": {"id": 15}}
+
+User: Click exactly at the top left corner of the video player
+{"thought": "The element doesn't have a bounding box number, but I can estimate the coordinates from the 5x5 grid in the screenshot.", "action": "click", "params": {"x": 200, "y": 350}}
+
+User: Type my email address
+{"thought": "I will type the email address into the currently focused input field.", "action": "type", "params": {"text": "user@example.com"}}
+
+User: Copy this text and paste it into a new sheet (Canvas App)
+{"thought": "In Canvas apps, I must use Keyboard Shortcuts. I will press Ctrl+C, then Shift+F11 to create a new sheet, then Ctrl+V.", "action": "pressKey", "params": {"key": "c", "times": 1, "modifiers": ["Control"]}}
+
+User: Read all the text on this standard HTML article
+{"thought": "This is a standard HTML site, so I can extract all the text directly from the DOM.", "action": "readPage", "params": {}}
+
+User: Delete all my tweets on this page
+{"thought": "I will use executeJavascript to run a script that clicks all delete buttons, which is much faster than doing it manually.", "action": "executeJavascript", "params": {"script": "document.querySelectorAll('[data-testid="tweetButton"]').forEach(b => b.click())"}}
+
+User: Check if my download finished
+{"thought": "I will query the browser's download manager.", "action": "checkDownloads", "params": {}}
+
+User: Find the link I visited yesterday about 'machine learning'
+{"thought": "I will search the browser history.", "action": "searchHistory", "params": {"query": "machine learning", "maxResults": 20}}
+
+User: Search my bookmarks for 'news'
+{"thought": "I will search the user's saved bookmarks.", "action": "searchBookmarks", "params": {"query": "news"}}
+
+User: What are my most visited sites?
+{"thought": "I will check the browser's top sites.", "action": "getTopSites", "params": {}}
+
+User: Disable my adblocker extension
+{"thought": "I first need to get the list of extensions to find the adblocker's ID.", "action": "getExtensions", "params": {}}
+
+User: (Extensions provided)
+{"thought": "I found the extension ID. I will disable it.", "action": "manageExtension", "params": {"id": "abdefg123456", "enabled": false}}
+
+User: Clear my cache and cookies
+{"thought": "I will clear the browsing data as requested.", "action": "clearBrowsingData", "params": {"types": ["cache", "cookies"]}}
+
+User: Get my session cookies for this site
+{"thought": "I will extract the cookies for the current domain.", "action": "getCookies", "params": {"domain": "example.com"}}
+
+User: Read the data from this Google Sheet
+{"thought": "This is a Canvas app. The DOM is empty. I MUST wiretap the canvas first.", "action": "wiretapCanvas", "params": {}}
+
+User: (Wiretap installed)
+{"thought": "I must force a redraw so the wiretap catches the text. I will press an arrow key.", "action": "pressKey", "params": {"key": "ArrowRight", "times": 1, "modifiers": []}}
+
+User: (Key pressed)
+{"thought": "Now I will read the extracted text from the wiretap.", "action": "readCanvasWiretap", "params": {}}`
 
 let state: AgentState = {
   messages: [{ role: "system", content: SYSTEM_PROMPT }],
