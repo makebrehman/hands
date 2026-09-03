@@ -393,7 +393,8 @@ async function actionClick(x: number, y: number) {
   await cdpSend("Input.dispatchMouseEvent", { type: "mouseMoved", x, y })
   await cdpSend("Input.dispatchMouseEvent", { type: "mousePressed", button: "left", clickCount: 1, x, y })
   await cdpSend("Input.dispatchMouseEvent", { type: "mouseReleased", button: "left", clickCount: 1, x, y })
-  return `Clicked at (${x}, ${y})`
+  await new Promise(r => setTimeout(r, 600));
+    return `Clicked at (${x}, ${y})`
 }
 
 
@@ -423,7 +424,8 @@ async function actionType(text: string) {
     await cdpSend("Input.dispatchKeyEvent", { type: "keyUp", text: char, unmodifiedText: char })
     await new Promise(r => setTimeout(r, 20)) // tiny delay to let canvas process
   }
-  return `Typed: "${text}"`
+  await new Promise(r => setTimeout(r, 600));
+    return `Typed: "${text}"`
 }
 
 async function actionPressKey(key: string, modifiersList: string[] = [], times: number = 1) {
@@ -458,7 +460,8 @@ async function actionPressKey(key: string, modifiersList: string[] = [], times: 
     await cdpSend("Input.dispatchKeyEvent", params)
   }
   
-  return `Pressed key: ${key} ${times > 1 ? `(${times} times)` : ""} ${modifiers > 0 ? `(Modifiers: ${modifiersList.join("+")})` : ""}`
+  await new Promise(r => setTimeout(r, 600));
+    return `Pressed key: ${key} ${times > 1 ? `(${times} times)` : ""} ${modifiers > 0 ? `(Modifiers: ${modifiersList.join("+")})` : ""}`
 }
 
 async function actionScroll(x: number, y: number, direction: string) {
