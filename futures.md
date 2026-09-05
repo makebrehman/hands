@@ -13,3 +13,7 @@ Vision Language Models (VLMs) suffer from severe "spatial blurriness" regarding 
 ### Potential Solutions:
 1. **Micro-Cropping (Zoom-in Verification):** Instead of just returning the full-screen screenshot, the backend could crop a small bounding box (e.g., 100x100 pixels) around the generated dots and send that zoomed-in snippet back to the model. This gives the VLM a much higher-resolution view of the local pixel area, making it impossible to hallucinate a hit when it actually missed.
 2. **Traditional Computer Vision Fallback:** Use a traditional CV algorithm (like OpenCV template matching) where the VLM draws a rough bounding box around an icon, and the script uses edge detection or template matching to snap the coordinates to the true center of the UI element, bypassing the VLM's spatial blindness entirely.
+
+## 3. Navigation Hierarchy During Loops
+Currently, the agent treats the `NAVIGATION HIERARCHY` (checking if tabs are already open before searching) as a "Phase 1" setup step. When it enters a long execution loop (e.g., searching for 16 different companies one by one), it abandons tab hygiene and aggressively spams `openTab` for every single search, opening dozens of redundant tabs. 
+**Future Fix:** We need to update the prompt so the agent understands that tab reuse applies *continuously* during loops (e.g., using `navigate` to reuse the same Google search tab for all 16 companies).

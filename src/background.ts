@@ -18,6 +18,7 @@ type Role = "system" | "user" | "assistant"
 interface Message {
   role: Role
   content: string | ContentPart[]
+  timestamp?: string
 }
 
 interface ContentPart {
@@ -110,9 +111,16 @@ RULES:
   - VISUAL COORDINATE CALIBRATION: When you need to click an element that has NO numbered box on it (e.g., a popup X button, an unlabeled icon), you MUST NOT blindly guess and fire a real click. You MUST use 'testCoordinates' first with up to 5 candidate (x,y) pairs. The backend will invisibly inject tiny colored dots at those pixels, capture a screenshot, and instantly remove the dots. Analyze which dot landed closest to your target. Refine with another 'testCoordinates' call if needed. Only fire a real 'click' once you are confident the coordinates are correct.
   - MANUAL CLICKS: If you are forced to use the manual "click" or "clickElement" tools (e.g. as a last resort on Canvas apps), you MUST FIRST use the "screenshot" tool immediately before to get fresh coordinates. If using executeJavascript to click standard DOM elements, you do not need screenshots.
   - When outputting JSON, NEVER use raw newlines inside strings. You MUST use escaped newlines (\\n).
+  - DESTRUCTIVE ACTION SAFEGUARD: Never assume ambiguous words mean "delete". For example, if a user asks to "close" a spreadsheet tab, they mean "Hide", NOT "Delete". Deleting is permanent and breaks formulas. Furthermore, if the user explicitly asks to "delete" sensitive user data or files, you MUST stop and output a normal text message asking for explicit confirmation before doing it.
   - After you use a tool, you will receive a response. You can then use another tool, or if you are finished, provide a final text response.
   
   EXAMPLES:
+
+User: Close the source sheet
+{"thought": "The user asked to 'close' the sheet. In a Canvas spreadsheet, 'closing' a tab means hiding it. I MUST NOT delete it, as that breaks formulas. I will click the sheet's menu arrow to find the Hide option.", "action": "click", "params": {"x": 250, "y": 970}}
+
+User: Delete the database table
+{"thought": "The user asked to delete a table. This is a highly destructive action. I must stop and ask for confirmation before executing.", "action": "updateScratchpad", "params": {"content": "User requested to delete the table. Asking for confirmation. [WAITING]"}}
 
 User: Go to Amazon.
   {"thought": "Per the Navigation Hierarchy, I must preserve state and check local tabs first.", "action": "getTabs", "params": {}}
@@ -158,6 +166,9 @@ User: Click exactly at the top left corner of the video player
 
 User: Type my email address
 {"thought": "I will type the email address into the currently focused input field.", "action": "type", "params": {"text": "user@example.com"}}
+
+User: (Type command sent)
+{"thought": "I must verify the text was successfully typed into the correct box before proceeding.", "action": "screenshot", "params": {}}
 
 User: Copy the data from the first sheet into a new sheet (Canvas App)
 {"thought": "In Canvas apps, app-specific formulas are more reliable than general Ctrl+C/V shortcuts. I will press Shift+F11 to create a new sheet, then type an ARRAYFORMULA to pull the data directly.", "action": "pressKey", "params": {"key": "F11", "times": 1, "modifiers": ["Shift"]}}
@@ -209,6 +220,12 @@ User: (Calibration screenshot returned - all dots missed the button. 686,163 is 
 
 User: (Calibration screenshot returned - dot at 653,150 is sitting exactly on the center of the X button)
 {"thought": "The dot at 653,150 is perfectly on target. Now that I am confident it is accurate, I will fire the real click.", "action": "click", "params": {"x": 653, "y": 150}}
+
+User: (Click command sent)
+{"thought": "I must verify the click actually worked and the popup closed before doing anything else.", "action": "screenshot", "params": {}}
+
+User: (Screenshot returned - popup is gone)
+{"thought": "The popup is successfully closed. I can now proceed to the next step.", "action": "updateScratchpad", "params": {"content": "Popup closed [DONE]"}}
 
 User: Click the play icon in the center of the video (it has no numbered box)
 {"thought": "I will test 2 candidate coordinates near the center.", "action": "testCoordinates", "params": {"coords": [{"x": 400, "y": 300}, {"x": 420, "y": 320}]}}
