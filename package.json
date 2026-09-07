@@ -1,8 +1,8 @@
 {
   "name": "hands-agent",
-  "displayName": "Hands",
+  "displayName": "Hands [BETA]",
   "version": "1.4.1",
-  "description": "Hands - Your stealth AI browser agent",
+  "description": "Hands - Your stealth AI browser agent. THIS EXTENSION IS FOR CLOSED BETA TESTING ONLY.",
   "author": "Hands Dev",
   "scripts": {
     "dev": "plasmo dev --no-cs-reload",
@@ -24,7 +24,7 @@
     "typescript": "5.3.3"
   },
   "manifest": {
-    "name": "Hands",
+    "name": "Hands [BETA]",
     "host_permissions": [
       "<all_urls>"
     ],

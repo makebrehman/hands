@@ -17,3 +17,10 @@ Vision Language Models (VLMs) suffer from severe "spatial blurriness" regarding 
 ## 3. Navigation Hierarchy During Loops
 Currently, the agent treats the `NAVIGATION HIERARCHY` (checking if tabs are already open before searching) as a "Phase 1" setup step. When it enters a long execution loop (e.g., searching for 16 different companies one by one), it abandons tab hygiene and aggressively spams `openTab` for every single search, opening dozens of redundant tabs. 
 **Future Fix:** We need to update the prompt so the agent understands that tab reuse applies *continuously* during loops (e.g., using `navigate` to reuse the same Google search tab for all 16 companies).
+
+## 4. Custom User Endpoints & Secure Built-in API
+Currently, the LLM API key is hardcoded in the frontend extension code (`background.ts`), which is completely insecure for a public release on the Chrome Web Store.
+
+### Future Architecture:
+1. **User-Provided Keys (Bring Your Own Key):** Build a Settings UI (Options page or Side Panel) where new users can input their own API Key and Endpoint URL. These will be stored securely in `chrome.storage.local`. The extension will route requests directly from the user's browser to their chosen endpoint.
+2. **Secure Built-in Cloud Endpoint:** For users who don't have their own keys, we will provide a "Hands Cloud" toggle. This will route requests to a secure proxy server (e.g., Cloudflare Worker or Node.js backend). The proxy server will hold our master API key in its hidden environment variables, attach it to the incoming requests, and forward them to the LLM provider. This protects our API key from being stolen via Chrome DevTools while still serving the user.
