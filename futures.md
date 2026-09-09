@@ -24,3 +24,8 @@ Currently, the LLM API key is hardcoded in the frontend extension code (`backgro
 ### Future Architecture:
 1. **User-Provided Keys (Bring Your Own Key):** Build a Settings UI (Options page or Side Panel) where new users can input their own API Key and Endpoint URL. These will be stored securely in `chrome.storage.local`. The extension will route requests directly from the user's browser to their chosen endpoint.
 2. **Secure Built-in Cloud Endpoint:** For users who don't have their own keys, we will provide a "Hands Cloud" toggle. This will route requests to a secure proxy server (e.g., Cloudflare Worker or Node.js backend). The proxy server will hold our master API key in its hidden environment variables, attach it to the incoming requests, and forward them to the LLM provider. This protects our API key from being stolen via Chrome DevTools while still serving the user.
+
+
+## 5. Long-Term Chat Memory Management (Context Window Limits)
+Currently, we send 100% of all historical text messages back to the server on every request. While we have a sliding window for images (dropping screenshots older than 4 messages to prevent "413 Payload Too Large" crashes), an extremely long text conversation could eventually hit the token limit of the LLM or cost too much.
+**Future Fix:** We need to implement a mechanism to limit the text context. This could be a hard cap (e.g., keeping only the last 20 text messages), a token counter that starts trimming the oldest messages when approaching a limit, or an automatic summarization step where the server condenses old chat history into a brief summary.
