@@ -29,3 +29,12 @@ Currently, the LLM API key is hardcoded in the frontend extension code (`backgro
 ## 5. Long-Term Chat Memory Management (Context Window Limits)
 Currently, we send 100% of all historical text messages back to the server on every request. While we have a sliding window for images (dropping screenshots older than 4 messages to prevent "413 Payload Too Large" crashes), an extremely long text conversation could eventually hit the token limit of the LLM or cost too much.
 **Future Fix:** We need to implement a mechanism to limit the text context. This could be a hard cap (e.g., keeping only the last 20 text messages), a token counter that starts trimming the oldest messages when approaching a limit, or an automatic summarization step where the server condenses old chat history into a brief summary.
+
+## 6. Pricing Plan Implementation
+We need to implement the backend integration and frontend UI to enforce our freemium token limits and paid tier upgrades. The strategy prioritizes aggressive growth and user acquisition:
+- **Free Tier:** 500,000 AI tokens per week (hard capped at 150,000 tokens/hour) to prevent runaway loops from draining the budget while allowing users to complete ~4-5 complex workflows per week.
+- **Hands Pro (/mo):** 5,000,000 AI tokens per week (hard capped at 500,000 tokens/hour) to allow heavy power usage.
+- **BYOK (Bring Your Own Key):** Both tiers will fully support bypassing these limits if the user supplies their own API key, transferring the LLM costs to them.
+
+## 7. UI Icon Updates
+The icons across the landing page and the Chrome extension UI need to be overhauled or updated in the future to better match the brand identity and the clean, neon-green aesthetic of the new designs.
