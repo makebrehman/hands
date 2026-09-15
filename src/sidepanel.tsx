@@ -1,4 +1,5 @@
-﻿import { useEffect, useRef, useState } from "react"
+import React, { useEffect, useRef, useState, Component } from "react"
+import type { ErrorInfo, ReactNode } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
@@ -50,6 +51,14 @@ export default function SidePanel() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [toasts, setToasts] = useState<{id: string, text: string, type: string}[]>([])
   const [approvalReq, setApprovalReq] = useState<any>(null)
+  const [editingChatId, setEditingChatId] = useState<string | null>(null)
+  const [editChatTitle, setEditChatTitle] = useState("")
+
+  // Streaming State (Active Buffer)
+  const [activeStream, setActiveStream] = useState("")
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [streamError, setStreamError] = useState(false)
+  const [streamScreenshot, setStreamScreenshot] = useState<string | null>(null)
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -70,16 +79,22 @@ export default function SidePanel() {
       if (msg.type === "REQUIRE_APPROVAL") {
         setApprovalReq(msg.payload)
       } else if (msg.type === "AGENT_ERROR") {
+        if (pollingRef.current) {
+          clearInterval(pollingRef.current)
+          pollingRef.current = null
+        }
         showToast(msg.error, "error")
-        setMessages(prev => {
-          const copy = [...prev]
-          if (copy.length > 0) {
-            copy[copy.length - 1] = { ...copy[copy.length - 1], isError: true }
-          }
-          return copy
-        })
+        setStreamError(true)
         setIsLoading(false)
-        setStatus("")
+        setIsStreaming(false)
+        setStatus("Failed")
+        chrome.storage.local.set({ streamBuffer: "", streamDone: false, streamStatus: "", streamScreenshot: null })
+        setMessages(prev => [...prev, {
+          role: "assistant",
+          isError: true,
+          text: msg.error || "Failed to communicate with AI provider",
+          screenshot: streamScreenshot || undefined
+        }])
       }
     }
     chrome.runtime.onMessage.addListener(handleMsg)
@@ -89,7 +104,7 @@ export default function SidePanel() {
       portRef.current?.disconnect()
       chrome.runtime.onMessage.removeListener(handleMsg)
     }
-  }, [])
+  }, [streamScreenshot])
 
   useEffect(() => {
     chrome.storage.local.get(["apiKey", "baseUrl", "useCustomProvider", "customModel"], (storage) => {
@@ -110,35 +125,40 @@ export default function SidePanel() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages, status])
+  }, [messages, status, activeStream])
 
   // Save chat to DB whenever messages change
   useEffect(() => {
-    if (messages.length > 0) {
-      getChat(chatId).then(existing => {
-        let newUpdatedAt = existing ? existing.updatedAt : Date.now();
-        // Bump timestamp if it's new, if messages were added, or if currently streaming
-        if (!existing || existing.messages.length !== messages.length || messages[messages.length - 1].isStreaming) {
-          newUpdatedAt = Date.now();
-        }
-        saveChat({
-          id: chatId,
-          title: messages[0].text.substring(0, 30) + "...",
-          updatedAt: newUpdatedAt,
-          messages: messages
-        }).then(() => loadChats())
-      })
-    }
+    if (messages.length === 0) return;
+    
+    getChat(chatId).then(existing => {
+      let newUpdatedAt = existing ? existing.updatedAt : Date.now();
+      if (!existing || existing.messages.length !== messages.length) {
+        newUpdatedAt = Date.now();
+      }
+      saveChat({
+        id: chatId,
+        title: existing?.title || (messages[0].text.substring(0, 30) + "..."),
+        updatedAt: newUpdatedAt,
+        messages: messages
+      }).then(() => loadChats())
+    })
   }, [messages, chatId])
 
   async function loadChats() {
     const all = await getAllChats()
-    setChats(all)
+    // Ensure all loaded chats have no active streaming states
+    const safeChats = all.map(c => ({
+      ...c,
+      messages: c.messages.map(m => ({ ...m, isStreaming: false }))
+    }))
+    setChats(safeChats)
   }
 
   function showToast(text: string, type: "error"|"success" = "success") {
     const id = generateId()
-    setToasts(prev => [...prev, { id, text, type }])
+    const safeText = text && text.length > 160 ? text.substring(0, 160) + "..." : text
+    setToasts(prev => [...prev, { id, text: safeText, type }])
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id))
     }, 4000)
@@ -154,52 +174,52 @@ export default function SidePanel() {
 
       if (result.streamBuffer !== undefined && result.streamBuffer !== lastBuffer) {
         lastBuffer = result.streamBuffer
-        setMessages((prev) => {
-          const copy = [...prev]
-          const last = copy[copy.length - 1]
-          if (last?.role === "assistant" && last.isStreaming) {
-            copy[copy.length - 1] = { ...last, text: result.streamBuffer }
-          } else {
-            copy.push({ role: "assistant", text: result.streamBuffer, isStreaming: true })
-          }
-          return copy
-        })
+        setActiveStream(result.streamBuffer)
       }
 
       if (result.streamScreenshot) {
         chrome.storage.local.set({ streamScreenshot: null })
-        setMessages((prev) => {
-          const copy = [...prev]
-          const last = copy[copy.length - 1]
-          if (last) copy[copy.length - 1] = { ...last, screenshot: result.streamScreenshot }
-          return copy
-        })
+        setStreamScreenshot(result.streamScreenshot)
       }
 
       if (result.streamDone) {
         clearInterval(pollingRef.current!)
         pollingRef.current = null
         setIsLoading(false)
+        setIsStreaming(false)
+
+        if (result.streamStatus === "Failed") {
+          setStatus("Failed")
+          setStreamError(true)
+          chrome.storage.local.set({ streamBuffer: "", streamDone: false, streamStatus: "", streamScreenshot: null })
+          setMessages(prev => [...prev, { 
+            role: "assistant", 
+            isError: true, 
+            text: result.streamBuffer || "Failed to communicate with AI provider",
+            screenshot: streamScreenshot || undefined
+          }])
+          return
+        }
+
         setStatus("")
         chrome.storage.local.set({ streamBuffer: "", streamDone: false, streamStatus: "", streamScreenshot: null })
         
-        setMessages((prev) => {
-          const copy = [...prev]
-          const last = copy[copy.length - 1]
-          if (last && last.role === "assistant") {
-            let clean = last.text.replace(/```json\s*[\s\S]*?```/g, "").replace(/ACTION:\s*\{[\s\S]*?\}(?:\n|$)/g, "").replace(/<tool>[\s\S]*?<\/tool>/g, "").replace(/\{\s*"action"\s*:\s*"[^"]+"\s*,\s*"params"\s*:\s*\{[^}]*\}\s*\}/g, "").trim();
-            const openBrace = clean.lastIndexOf("{");
-            if (openBrace !== -1 && clean.indexOf("}", openBrace) === -1) {
-              clean = clean.substring(0, openBrace).trim();
-            }
-            if (clean.length === 0 && !last.screenshot) {
-              copy.pop();
-            } else {
-              copy[copy.length - 1] = { ...last, isStreaming: false }
-            }
+        let clean = result.streamBuffer || lastBuffer
+        if (clean) {
+          clean = clean.replace(/```json\s*[\s\S]*?```/g, "").replace(/ACTION:\s*\{[\s\S]*?\}(?:\n|$)/g, "").replace(/<tool>[\s\S]*?<\/tool>/g, "").replace(/\{\s*"action"\s*:\s*"[^"]+"\s*,\s*"params"\s*:\s*\{[^}]*\}\s*\}/g, "").trim();
+          const openBrace = clean.lastIndexOf("{");
+          if (openBrace !== -1 && clean.indexOf("}", openBrace) === -1) {
+            clean = clean.substring(0, openBrace).trim();
           }
-          return copy
-        })
+        }
+        
+        if (clean.length > 0 || streamScreenshot) {
+            setMessages(prev => [...prev, { 
+                role: "assistant", 
+                text: clean,
+                screenshot: streamScreenshot || undefined
+            }])
+        }
       }
     }, 100)
   }
@@ -213,8 +233,14 @@ export default function SidePanel() {
     setSelectedImages([])
     setIsLoading(true)
     setStatus("Thinking...")
+    
+    // Reset stream states
+    setActiveStream("")
+    setIsStreaming(true)
+    setStreamError(false)
+    setStreamScreenshot(null)
 
-    const newMessages = [...messages, { role: "user" as const, text, images: imagesToSend }, { role: "assistant" as const, text: "", isStreaming: true }]
+    const newMessages = [...messages, { role: "user" as const, text, images: imagesToSend }]
     setMessages(newMessages)
 
     chrome.storage.local.set({ streamBuffer: "", streamDone: false, streamStatus: "", streamScreenshot: null }, () => {
@@ -310,6 +336,10 @@ export default function SidePanel() {
     chrome.runtime.sendMessage({ type: "STOP" })
     setIsLoading(false)
     setStatus("")
+    setIsStreaming(false)
+    setActiveStream("")
+    setStreamError(false)
+    setStreamScreenshot(null)
     if (pollingRef.current) {
       clearInterval(pollingRef.current)
       pollingRef.current = null
@@ -321,6 +351,10 @@ export default function SidePanel() {
       setMessages([])
       setMsgCount(1)
       setChatId(generateId())
+      setIsStreaming(false)
+      setActiveStream("")
+      setStreamError(false)
+      setStreamScreenshot(null)
     })
   }
 
@@ -329,6 +363,10 @@ export default function SidePanel() {
       setMessages(c.messages)
       setChatId(c.id)
       setIsSidebarOpen(false)
+      setIsStreaming(false)
+      setActiveStream("")
+      setStreamError(false)
+      setStreamScreenshot(null)
     })
   }
 
@@ -340,20 +378,17 @@ export default function SidePanel() {
   function retryLast() {
     setIsLoading(true)
     setStatus("Retrying...")
-    setMessages(prev => {
-      const copy = [...prev]
-      if (copy.length > 0) {
-        copy[copy.length - 1] = { ...copy[copy.length - 1], isError: false, isStreaming: true }
-      }
-      return copy
-    })
+    // Reset stream state
+    setActiveStream("")
+    setIsStreaming(true)
+    setStreamError(false)
+    setStreamScreenshot(null)
+    
     chrome.storage.local.set({ streamBuffer: "", streamDone: false, streamStatus: "", streamScreenshot: null }, () => {
       chrome.runtime.sendMessage({ type: "RETRY_CHAT" })
       startPolling()
     });
   }
-
-
 
   return (
     <div className="hands-root">
@@ -392,11 +427,42 @@ export default function SidePanel() {
         </div>
         <div className="hands-sidebar-list">
           {chats.map(c => (
-            <div key={c.id} className={`hands-chat-item ${c.id === chatId ? 'hands-chat-item-active' : ''}`} onClick={() => loadPastChat(c)}>
-              <span>{c.title}</span>
-              <button className="hands-chat-item-del" onClick={(e) => { e.stopPropagation(); deleteChat(c.id).then(()=>loadChats())}}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-              </button>
+            <div key={c.id} className={`hands-chat-item ${c.id === chatId ? 'hands-chat-item-active' : ''}`} onClick={() => { if (editingChatId !== c.id) loadPastChat(c); }}>
+              {editingChatId === c.id ? (
+                <div style={{ display: 'flex', width: '100%', gap: '4px', alignItems: 'center' }}>
+                  <input 
+                    autoFocus
+                    value={editChatTitle}
+                    onChange={(e) => setEditChatTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        saveChat({ ...c, title: editChatTitle }).then(() => { setEditingChatId(null); loadChats(); });
+                      } else if (e.key === 'Escape') {
+                        setEditingChatId(null);
+                      }
+                    }}
+                    style={{ flex: 1, minWidth: 0, padding: '2px 4px', background: 'var(--bg-3)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px' }} 
+                  />
+                  <button className="hands-icon-btn" style={{ padding: '4px' }} onClick={(e) => { e.stopPropagation(); saveChat({ ...c, title: editChatTitle }).then(() => { setEditingChatId(null); loadChats(); }); }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  </button>
+                  <button className="hands-icon-btn" style={{ padding: '4px' }} onClick={(e) => { e.stopPropagation(); setEditingChatId(null); }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.title}</span>
+                  <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                    <button className="hands-chat-item-del" title="Rename" style={{ color: 'var(--text-muted)' }} onClick={(e) => { e.stopPropagation(); setEditingChatId(c.id); setEditChatTitle(c.title || ""); }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                    </button>
+                    <button className="hands-chat-item-del" title="Delete" onClick={(e) => { e.stopPropagation(); deleteChat(c.id).then(()=>loadChats())}}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>
@@ -481,14 +547,15 @@ export default function SidePanel() {
                   showToast("Settings saved securely", "success")
                 })
               }}
-              style={{ padding: '8px', background: 'var(--accent)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+              className="hands-btn-primary"
+              style={{ width: '100%', marginTop: '4px' }}>
               Save Settings
             </button>
           </div>
         )}
 
       <div className="hands-messages">
-        {messages.length === 0 && (
+        {messages.length === 0 && !isStreaming && (
           <div className="hands-empty">
             <div className="hands-empty-icon" style={{ marginBottom: '16px' }}>
               <HandsLogo animated={true} className="hands-empty-logo" />
@@ -502,8 +569,14 @@ export default function SidePanel() {
           <div key={i} className={`hands-msg hands-msg-${msg.role}`}>
             <div className="hands-msg-bubble">
               {msg.role === "assistant" && (
-                <div style={{ marginBottom: "8px", display: "flex", alignItems: "center" }}>
-                  <HandsLogo animated={!!msg.isStreaming} />
+                <div style={{ marginBottom: (msg.text || msg.isError) ? "8px" : "0", display: "flex", alignItems: "center", gap: "8px" }}>
+                  <HandsLogo animated={false} />
+                  {msg.isError && (
+                    <span className="hands-failed-badge">
+                      <span className="hands-failed-dot" />
+                      <span>Failed</span>
+                    </span>
+                  )}
                 </div>
               )}
               {msg.images && msg.images.length > 0 && (
@@ -513,7 +586,14 @@ export default function SidePanel() {
                   ))}
                 </div>
               )}
-              <MessageContent text={msg.text} />
+              {msg.isError ? (
+                <div className="hands-error-banner">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                  <span>{msg.text || "An unexpected error occurred with the AI provider."}</span>
+                </div>
+              ) : (
+                msg.text ? <MessageContent text={msg.text} /> : null
+              )}
 
               {msg.isError && (
                 <button className="hands-retry-btn" onClick={retryLast}>
@@ -524,10 +604,21 @@ export default function SidePanel() {
           </div>
         ))}
 
-        {status && (
-          <div className="hands-status">
-            <span className="hands-status-dot" />
-            {status}
+        {isStreaming && (
+          <div className="hands-msg hands-msg-assistant">
+            <div className="hands-msg-bubble">
+              <div style={{ marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
+                <HandsLogo animated={true} />
+                <span className="hands-thinking-indicator">
+                  <span className="hands-status-dot" />
+                  <span>{status || "Thinking..."}</span>
+                </span>
+              </div>
+              {streamScreenshot && (
+                <img src={streamScreenshot} style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '4px', marginBottom: '8px' }} />
+              )}
+              {activeStream && <MessageContent text={activeStream} />}
+            </div>
           </div>
         )}
 
@@ -542,7 +633,8 @@ export default function SidePanel() {
                 <img src={img} style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--border)' }} />
                 <button 
                   onClick={() => removeImage(idx)}
-                  style={{ position: 'absolute', top: '-4px', right: '-4px', background: 'var(--bg-4)', color: 'var(--text)', border: 'none', borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  className="hands-img-remove-btn"
+                  title="Remove image">
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
               </div>
@@ -598,6 +690,32 @@ export default function SidePanel() {
   )
 }
 
+class ErrorBoundary extends Component<{ children: ReactNode, fallback?: ReactNode }, { hasError: boolean, error: Error | null }> {
+  constructor(props: { children: ReactNode, fallback?: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("MessageContent render error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback || (
+        <div style={{ color: 'red', padding: '10px', background: 'rgba(255,0,0,0.1)', borderRadius: '4px' }}>
+          Error rendering message content: {this.state.error?.message}
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function MessageContent({ text }: { text: string }) {
   let cleanText = text
     .replace(/```json\s*[\s\S]*?```/g, "")
@@ -616,38 +734,33 @@ function MessageContent({ text }: { text: string }) {
   return (
     <div className="hands-msg-text">
       {hasText && (
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          components={{
-            code({ node, className, children, ...props }: any) {
-              const match = /language-(\w+)/.exec(className || "")
-              return match ? (
-                <SyntaxHighlighter
-                  {...props}
-                  style={vscDarkPlus as any}
-                  language={match[1]}
-                  PreTag="div"
-                >
-                  {String(children).replace(/\n$/, "")}
-                </SyntaxHighlighter>
-              ) : (
-                <code {...props} className={className}>
-                  {children}
-                </code>
-              )
-            }
-          }}
-        >
-          {cleanText}
-        </ReactMarkdown>
+        <ErrorBoundary fallback={<div>{cleanText}</div>}>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              code({ node, inline, className, children, ...props }: any) {
+                const match = /language-(\w+)/.exec(className || "")
+                return !inline && match ? (
+                  <SyntaxHighlighter
+                    {...props}
+                    style={vscDarkPlus as any}
+                    language={match[1]}
+                    PreTag="div"
+                  >
+                    {String(children).replace(/\n$/, "")}
+                  </SyntaxHighlighter>
+                ) : (
+                  <code {...props} className={className}>
+                    {children}
+                  </code>
+                )
+              }
+            }}
+          >
+            {cleanText}
+          </ReactMarkdown>
+        </ErrorBoundary>
       )}
     </div>
   )
 }
-
-
-
-
-
-
-

@@ -1,11 +1,10 @@
-/* Hands — Side Panel Styles */
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;500;600;700;800;900&display=swap');
 
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  font-family: 'Unbounded', -apple-system, sans-serif;
 }
 
 :root {
@@ -32,7 +31,7 @@ html, body {
 }
 
 body {
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family: 'Unbounded', -apple-system, sans-serif;
   background: var(--bg);
   color: var(--text);
   font-size: 13px;
@@ -377,9 +376,9 @@ body {
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: var(--accent);
-  border: none;
-  color: white;
+  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #000000;
   font-size: 16px;
   cursor: pointer;
   display: flex;
@@ -390,19 +389,54 @@ body {
   line-height: 1;
 }
 
+.hands-send-btn svg {
+  stroke: #000000;
+}
+
 .hands-send-btn:hover:not(:disabled) {
-  background: #818cf8;
+  background: #e2e8f0;
+  color: #000000;
   transform: translateY(-1px);
 }
 
 .hands-send-btn:disabled {
-  opacity: 0.35;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  opacity: 0.5;
   cursor: not-allowed;
+}
+
+.hands-send-btn:disabled svg {
+  stroke: var(--text-muted);
 }
 
 .hands-send-loading {
   font-size: 18px;
   letter-spacing: -1px;
+}
+
+.hands-img-remove-btn {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #000000;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.hands-img-remove-btn:hover {
+  background: #dc3545;
+  border-color: #dc3545;
 }
 
 /* ─── ACTION BADGE & THINKING ─────────────────────────── */
@@ -427,6 +461,39 @@ body {
   letter-spacing: 2px;
   animation: pulse 1s ease-in-out infinite;
 }
+
+.hands-thinking-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 400;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.hands-failed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #ff5c5c;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: rgba(255, 92, 92, 0.12);
+  border: 1px solid rgba(255, 92, 92, 0.3);
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.hands-failed-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff5c5c;
+  flex-shrink: 0;
+}
+
 
 /* Phase 3: Sidebar, Toasts, Modals */
 
@@ -536,12 +603,34 @@ body {
   padding: 8px 16px;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  font-weight: 500;
-  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+  transition: background 0.15s, transform 0.1s;
 }
-.hands-btn-primary { background: var(--accent); color: var(--bg); }
-.hands-btn-danger { background: #dc3545; }
-.hands-btn-secondary { background: var(--bg-4); color: var(--text); }
+.hands-btn-primary { 
+  background: #ffffff; 
+  color: #000000; 
+  border: 1px solid #ffffff;
+}
+.hands-btn-primary:hover {
+  background: #e2e8f0;
+}
+.hands-btn-danger { 
+  background: #dc3545; 
+  color: #ffffff;
+}
+.hands-btn-danger:hover {
+  background: #bd2130;
+}
+.hands-btn-secondary { 
+  background: var(--bg-4); 
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.hands-btn-secondary:hover {
+  background: var(--bg-3);
+  color: #ffffff;
+}
 
 .hands-toasts {
   position: absolute;
@@ -553,38 +642,70 @@ body {
   gap: 8px;
   z-index: 300;
   pointer-events: none;
+  max-width: 90%;
+  width: max-content;
 }
 .hands-toast {
   background: var(--bg-3);
   color: var(--text);
   padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 13px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
   border: 1px solid var(--border);
+  max-width: 320px;
+  max-height: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
 }
 .hands-toast-error {
-  background: #dc3545;
-  border-color: #ff4d4d;
-  color: white;
+  background: #7f1d1d;
+  border-color: #ef4444;
+  color: #ffffff;
+}
+
+.hands-error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: rgba(220, 53, 69, 0.15);
+  border: 1px solid rgba(220, 53, 69, 0.4);
+  color: #ff858d;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+.hands-error-banner svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  stroke: #ff6b6b;
 }
 
 .hands-retry-btn {
-  background: transparent;
-  color: var(--text-dim);
+  background: var(--bg-3);
+  color: var(--text);
   border: 1px solid var(--border);
-  padding: 4px 8px;
+  padding: 6px 10px;
   border-radius: var(--radius-sm);
   font-size: 12px;
   cursor: pointer;
   margin-top: 8px;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  transition: background 0.15s, border-color 0.15s;
+}
+.hands-retry-btn svg {
+  stroke: currentColor;
 }
 .hands-retry-btn:hover {
-  background: var(--bg-3);
-  color: var(--text);
+  background: var(--bg-4);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .hands-switch {

@@ -1,3 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;500;600;700;800;900&display=swap');
+
+* {
+  font-family: 'Unbounded', -apple-system, sans-serif;
+}
+
 .new-tab {
   background-color: #f0f0f0;
   border: 1px solid #ccc;
@@ -13,3 +19,4 @@
   text-decoration: none;
   width: 100%;
 }
+
