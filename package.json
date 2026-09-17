@@ -50,7 +50,8 @@
       "cookies",
       "browsingData",
       "bookmarks",
-      "declarativeNetRequest"
+      "declarativeNetRequest",
+      "favicon"
     ],
     "side_panel": {
       "default_path": "sidepanel.html"

@@ -544,6 +544,7 @@ body {
   transition: background 0.2s;
   display: flex;
   justify-content: space-between;
+  align-items: center;
 }
 .hands-chat-item:hover, .hands-chat-item-active {
   background: var(--bg-3);
@@ -745,5 +746,5 @@ input:checked + .hands-slider {
 }
 input:checked + .hands-slider:before {
   transform: translateX(14px);
-  background-color: #fff;
+  background-color: var(--bg);
 }

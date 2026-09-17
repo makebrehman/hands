@@ -59,6 +59,7 @@ export default function SidePanel() {
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamError, setStreamError] = useState(false)
   const [streamScreenshot, setStreamScreenshot] = useState<string | null>(null)
+  const [activeTabUrl, setActiveTabUrl] = useState("")
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -242,6 +243,10 @@ export default function SidePanel() {
 
     const newMessages = [...messages, { role: "user" as const, text, images: imagesToSend }]
     setMessages(newMessages)
+    
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]?.url) setActiveTabUrl(tabs[0].url);
+    });
 
     chrome.storage.local.set({ streamBuffer: "", streamDone: false, streamStatus: "", streamScreenshot: null }, () => {
       chrome.runtime.sendMessage({ type: "CHAT", text, images: imagesToSend, chatId })
@@ -378,12 +383,22 @@ export default function SidePanel() {
   function retryLast() {
     setIsLoading(true)
     setStatus("Retrying...")
-    // Reset stream state
     setActiveStream("")
     setIsStreaming(true)
     setStreamError(false)
     setStreamScreenshot(null)
+    setMessages(prev => {
+      const copy = [...prev]
+      if (copy.length > 0 && copy[copy.length - 1].role === "assistant") {
+        copy.pop()
+      }
+      return copy
+    })
     
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]?.url) setActiveTabUrl(tabs[0].url);
+    });
+
     chrome.storage.local.set({ streamBuffer: "", streamDone: false, streamStatus: "", streamScreenshot: null }, () => {
       chrome.runtime.sendMessage({ type: "RETRY_CHAT" })
       startPolling()
@@ -457,7 +472,7 @@ export default function SidePanel() {
                     <button className="hands-chat-item-del" title="Rename" style={{ color: 'var(--text-muted)' }} onClick={(e) => { e.stopPropagation(); setEditingChatId(c.id); setEditChatTitle(c.title || ""); }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                     </button>
-                    <button className="hands-chat-item-del" title="Delete" onClick={(e) => { e.stopPropagation(); deleteChat(c.id).then(()=>loadChats())}}>
+                    <button className="hands-chat-item-del" title="Delete" onClick={(e) => { e.stopPropagation(); if(window.confirm("Are you sure you want to delete this chat?")) { deleteChat(c.id).then(()=>loadChats()) } }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                     </button>
                   </div>
@@ -609,14 +624,14 @@ export default function SidePanel() {
             <div className="hands-msg-bubble">
               <div style={{ marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
                 <HandsLogo animated={true} />
+                {activeTabUrl && (
+                  <img src={`chrome-extension://${chrome.runtime.id}/_favicon/?pageUrl=${encodeURIComponent(activeTabUrl)}&size=32`} style={{ width: '16px', height: '16px', borderRadius: '2px', opacity: 0.9 }} title="Active Tab Context" alt="" />
+                )}
                 <span className="hands-thinking-indicator">
                   <span className="hands-status-dot" />
                   <span>{status || "Thinking..."}</span>
                 </span>
               </div>
-              {streamScreenshot && (
-                <img src={streamScreenshot} style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '4px', marginBottom: '8px' }} />
-              )}
               {activeStream && <MessageContent text={activeStream} />}
             </div>
           </div>
