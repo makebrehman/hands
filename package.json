@@ -51,8 +51,13 @@
       "browsingData",
       "bookmarks",
       "declarativeNetRequest",
-      "favicon"
+      "favicon",
+      "identity"
     ],
+    "oauth2": {
+      "client_id": "YOUR_GOOGLE_OAUTH_CLIENT_ID.apps.googleusercontent.com",
+      "scopes": ["https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"]
+    },
     "side_panel": {
       "default_path": "sidepanel.html"
     },

@@ -45,6 +45,10 @@ export default function SidePanel() {
   const [baseUrl, setBaseUrl] = useState("")
   const [customModel, setCustomModel] = useState("")
   
+  // Phase 4 State (Auth & Limits)
+  const [authToken, setAuthToken] = useState("")
+  const [tokenLimit, setTokenLimit] = useState<{used: number, max: number} | null>(null)
+  
   // Phase 3 State
   const [chatId, setChatId] = useState<string>(generateId())
   const [chats, setChats] = useState<ChatSession[]>([])
@@ -108,11 +112,16 @@ export default function SidePanel() {
   }, [streamScreenshot])
 
   useEffect(() => {
-    chrome.storage.local.get(["apiKey", "baseUrl", "useCustomProvider", "customModel"], (storage) => {
+    chrome.storage.local.get(["apiKey", "baseUrl", "useCustomProvider", "customModel", "authToken"], (storage) => {
       if (storage.apiKey) setApiKey(storage.apiKey)
       if (storage.baseUrl) setBaseUrl(storage.baseUrl)
       if (storage.useCustomProvider !== undefined) setUseCustomProvider(storage.useCustomProvider)
       if (storage.customModel) setCustomModel(storage.customModel)
+      if (storage.authToken) {
+        setAuthToken(storage.authToken)
+        // Mock token limit for now since backend is not connected
+        setTokenLimit({ used: 125000, max: 500000 })
+      }
     })
     chrome.runtime.sendMessage({ type: "GET_STATE" }, (res) => {
       if (res?.messages && res.messages.length > 0) {
@@ -363,6 +372,30 @@ export default function SidePanel() {
     })
   }
 
+  const signIn = () => {
+    chrome.identity.getAuthToken({ interactive: true }, (token) => {
+      if (chrome.runtime.lastError || !token) {
+        showToast("Login failed: " + chrome.runtime.lastError?.message, "error");
+        return;
+      }
+      chrome.storage.local.set({ authToken: token }, () => {
+        setAuthToken(token);
+        setTokenLimit({ used: 125000, max: 500000 }); // Mock load
+        showToast("Successfully signed in!", "success");
+      });
+    });
+  };
+
+  const signOut = () => {
+    chrome.identity.removeCachedAuthToken({ token: authToken }, () => {
+      chrome.storage.local.remove(["authToken"], () => {
+        setAuthToken("");
+        setTokenLimit(null);
+        showToast("Signed out successfully", "success");
+      });
+    });
+  };
+
   function loadPastChat(c: ChatSession) {
     chrome.runtime.sendMessage({ type: "LOAD_CHAT", messages: c.messages, chatId: c.id }, () => {
       setMessages(c.messages)
@@ -551,8 +584,33 @@ export default function SidePanel() {
                 </div>
               </>
             ) : (
-              <div style={{ padding: '8px', background: 'var(--bg-2)', borderRadius: '4px', fontSize: '13px', color: 'var(--text)' }}>
-                Currently using the secure <strong>Hands Cloud</strong> provider.
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: 'var(--bg-2)', borderRadius: '6px', fontSize: '13px', color: 'var(--text)' }}>
+                <div>Currently using the secure <strong>Hands Cloud</strong> provider.</div>
+                {authToken ? (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Tokens Used Today:</span>
+                      <strong style={{ color: tokenLimit && tokenLimit.used > tokenLimit.max ? '#ef4444' : 'var(--text)' }}>
+                        {tokenLimit ? `${(tokenLimit.used / 1000).toFixed(0)}k / ${(tokenLimit.max / 1000).toFixed(0)}k` : 'Loading...'}
+                      </strong>
+                    </div>
+                    {tokenLimit && tokenLimit.used > tokenLimit.max && (
+                      <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>Daily limit reached. Please use your own API key.</div>
+                    )}
+                    <button 
+                      onClick={signOut}
+                      style={{ marginTop: '8px', padding: '6px', background: 'transparent', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text)', cursor: 'pointer' }}>
+                      Sign Out
+                    </button>
+                  </>
+                ) : (
+                  <button 
+                    onClick={signIn}
+                    className="hands-btn-primary"
+                    style={{ marginTop: '8px', padding: '8px' }}>
+                    Sign in with Google
+                  </button>
+                )}
               </div>
             )}
             

@@ -38,3 +38,6 @@ We need to implement the backend integration and frontend UI to enforce our free
 
 ## 7. UI Icon Updates
 The icons across the landing page and the Chrome extension UI need to be overhauled or updated in the future to better match the brand identity and the clean, neon-green aesthetic of the new designs.
+
+## 8. Sensitive Information Sanitizer
+We need to add a sensitive data sanitizer to scrub personal information before it leaves the browser. We will refine the details of this implementation later.
