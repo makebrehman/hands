@@ -1793,6 +1793,29 @@ function parseAndHideActions(text: string): { actions: any[], cleanText: string 
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.type === "FETCH_USER_INFO") {
+    fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+      headers: { Authorization: `Bearer ${message.token}` }
+    })
+      .then(res => res.json())
+      .then(data => sendResponse({ success: true, data }))
+      .catch(err => sendResponse({ success: false, error: err.message }));
+    return true; // Keep message channel open for async response
+  }
+
+  if (message.type === "FETCH_TOKENS") {
+    fetch(`${message.baseUrl}/api/tokens`, {
+      headers: { Authorization: `Bearer ${message.token}` }
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Failed to fetch");
+        return res.json();
+      })
+      .then(data => sendResponse({ success: true, data }))
+      .catch(err => sendResponse({ success: false, error: err.message }));
+    return true; // Keep message channel open for async response
+  }
+
   if (message.type === "APPROVAL_RESPONSE") {
     if (pendingApproval) pendingApproval.resolve(message.approved);
     return;

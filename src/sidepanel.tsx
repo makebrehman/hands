@@ -129,12 +129,14 @@ export default function SidePanel() {
         setAuthToken(storage.authToken)
         
         let initialTokens = { used: 0, max: 500000 };
-        try {
-          const tRes = await fetch(`${storage.baseUrl || "https://hands.app"}/api/tokens`, { headers: { Authorization: `Bearer ${storage.authToken}` } });
-          if (tRes.ok) initialTokens = await tRes.json();
-        } catch (e) {}
-        
-        setTokenLimit(initialTokens)
+        chrome.runtime.sendMessage({ 
+          type: "FETCH_TOKENS", 
+          token: storage.authToken, 
+          baseUrl: storage.baseUrl || "https://hands.app" 
+        }, (res) => {
+          if (res?.success) initialTokens = res.data;
+          setTokenLimit(initialTokens);
+        });
       }
     })
     chrome.runtime.sendMessage({ type: "GET_STATE" }, (res) => {
@@ -402,33 +404,19 @@ export default function SidePanel() {
         return;
       }
       
-      // Fetch user profile info
-      fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
-        headers: { Authorization: `Bearer ${token}` }
-      }).then(res => res.json()).then(async data => {
-        const email = data?.email || "";
+      chrome.runtime.sendMessage({ type: "FETCH_USER_INFO", token }, (infoRes) => {
+        const email = infoRes?.success ? (infoRes.data?.email || "") : "";
         
-        let initialTokens = { used: 0, max: 500000 };
-        try {
-          const tRes = await fetch(`${baseUrl}/api/tokens`, { headers: { Authorization: `Bearer ${token}` } });
-          if (tRes.ok) initialTokens = await tRes.json();
-        } catch (e) {
-          console.error("Failed to fetch token limit", e);
-        }
+        chrome.runtime.sendMessage({ type: "FETCH_TOKENS", token, baseUrl }, (tRes) => {
+          let initialTokens = { used: 0, max: 500000 };
+          if (tRes?.success) initialTokens = tRes.data;
 
-        chrome.storage.local.set({ authToken: token, userEmail: email }, () => {
-          setAuthToken(token);
-          setUserEmail(email);
-          setTokenLimit(initialTokens);
-          showToast("Successfully signed in!", "success");
-        });
-      }).catch(err => {
-        console.error("Failed to fetch user email", err);
-        // Fallback if fetch fails
-        chrome.storage.local.set({ authToken: token }, () => {
-          setAuthToken(token);
-          setTokenLimit({ used: 0, max: 500000 }); // Mock load
-          showToast("Successfully signed in!", "success");
+          chrome.storage.local.set({ authToken: token, userEmail: email }, () => {
+            setAuthToken(token);
+            setUserEmail(email);
+            setTokenLimit(initialTokens);
+            showToast("Successfully signed in!", "success");
+          });
         });
       });
     });
@@ -436,21 +424,15 @@ export default function SidePanel() {
 
   const refreshTokens = async () => {
     setIsRefreshingTokens(true);
-    try {
-      const res = await fetch(`${baseUrl}/api/tokens`, {
-        headers: { Authorization: `Bearer ${authToken}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setTokenLimit({ used: data.used, max: data.max });
+    chrome.runtime.sendMessage({ type: "FETCH_TOKENS", token: authToken, baseUrl }, (res) => {
+      if (res?.success) {
+        setTokenLimit({ used: res.data.used, max: res.data.max });
         showToast("Token count refreshed", "success");
       } else {
         showToast("Failed to refresh tokens", "error");
       }
-    } catch (err) {
-      showToast("Network error while refreshing tokens", "error");
-    }
-    setIsRefreshingTokens(false);
+      setIsRefreshingTokens(false);
+    });
   };
 
   const signOut = () => {
