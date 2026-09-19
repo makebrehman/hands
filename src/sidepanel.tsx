@@ -635,7 +635,7 @@ export default function SidePanel() {
               </>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: 'var(--bg-2)', borderRadius: '6px', fontSize: '13px', color: 'var(--text)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-start' }}>
                     <div>Currently using <strong>Hands Super Model</strong></div>
                     {authToken && userEmail && (
                       <div style={{ background: 'var(--bg-4)', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', color: 'var(--text-dim)' }}>
