@@ -1,6 +1,6 @@
 import React, { useId } from 'react'
 
-export const HandsLogo = ({ animated = false, className = "", style }: { animated?: boolean, className?: string, style?: React.CSSProperties }) => {
+export const HandsLogo = ({ animated = false, className = "", style = {} }: { animated?: boolean, className?: string, style?: React.CSSProperties }) => {
   const gradientId = "sweep-" + useId().replace(/:/g, '')
   
   return (
