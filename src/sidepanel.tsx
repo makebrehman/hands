@@ -98,8 +98,9 @@ export default function SidePanel() {
         
         chrome.storage.local.get(["useCustomProvider"], (s) => {
           const isCustom = !!s.useCustomProvider;
-          const errMsg = isCustom ? (msg.error || "Failed to communicate with AI provider") : "Hands Cloud is currently experiencing heavy load or network issues. Please try again in a moment.";
-          showToast(isCustom ? msg.error : "Hands Cloud server is not responding", "error");
+          const isQuotaError = msg.error && msg.error.includes("Limit Reached");
+          const errMsg = isCustom || isQuotaError ? (msg.error || "Failed to communicate with AI provider") : "Hands Cloud is currently experiencing heavy load or network issues. Please try again in a moment.";
+          showToast(errMsg, "error");
           setMessages(prev => [...prev, {
             role: "assistant",
             isError: true,
@@ -221,7 +222,8 @@ export default function SidePanel() {
           
           chrome.storage.local.get(["useCustomProvider"], (s) => {
             const isCustom = !!s.useCustomProvider;
-            const errMsg = isCustom ? (result.streamBuffer || "Failed to communicate with AI provider") : "Hands Cloud is currently experiencing heavy load or network issues. Please try again in a moment.";
+            const isQuotaError = result.streamBuffer && result.streamBuffer.includes("Limit Reached");
+            const errMsg = isCustom || isQuotaError ? (result.streamBuffer || "Failed to communicate with AI provider") : "Hands Cloud is currently experiencing heavy load or network issues. Please try again in a moment.";
             setMessages(prev => [...prev, { 
               role: "assistant", 
               isError: true, 
