@@ -373,9 +373,13 @@ export default function SidePanel() {
   }
 
   const signIn = () => {
+    console.log("signIn clicked");
+    showToast("Starting Google Sign-In...", "success");
     chrome.identity.getAuthToken({ interactive: true }, (token) => {
+      console.log("getAuthToken callback", token, chrome.runtime.lastError);
       if (chrome.runtime.lastError || !token) {
-        showToast("Login failed: " + chrome.runtime.lastError?.message, "error");
+        console.error("Login failed", chrome.runtime.lastError);
+        showToast("Login failed: " + (chrome.runtime.lastError?.message || "Unknown error"), "error");
         return;
       }
       chrome.storage.local.set({ authToken: token }, () => {
