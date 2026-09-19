@@ -48,6 +48,7 @@ export default function SidePanel() {
   // Phase 4 State (Auth & Limits)
   const [authToken, setAuthToken] = useState("")
   const [tokenLimit, setTokenLimit] = useState<{used: number, max: number} | null>(null)
+  const [isRefreshingTokens, setIsRefreshingTokens] = useState(false)
   
   // Phase 3 State
   const [chatId, setChatId] = useState<string>(generateId())
@@ -390,6 +391,16 @@ export default function SidePanel() {
     });
   };
 
+  const refreshTokens = () => {
+    setIsRefreshingTokens(true);
+    // Mock network delay for now
+    setTimeout(() => {
+      setTokenLimit({ used: 125000, max: 500000 }); // In the future this will fetch from backend
+      setIsRefreshingTokens(false);
+      showToast("Token count refreshed", "success");
+    }, 800);
+  };
+
   const signOut = () => {
     chrome.identity.removeCachedAuthToken({ token: authToken }, () => {
       chrome.storage.local.remove(["authToken"], () => {
@@ -593,7 +604,25 @@ export default function SidePanel() {
                 {authToken ? (
                   <>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-                      <span style={{ color: 'var(--text-muted)' }}>Tokens Used Today:</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Tokens Used Today:</span>
+                        <button 
+                          onClick={refreshTokens} 
+                          disabled={isRefreshingTokens}
+                          style={{ 
+                            background: 'none', border: 'none', cursor: 'pointer', padding: '2px', 
+                            color: 'var(--text-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                          }}
+                          title="Refresh token count"
+                        >
+                          <svg 
+                            width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                            style={{ animation: isRefreshingTokens ? 'spin 1s linear infinite' : 'none' }}
+                          >
+                            <polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                          </svg>
+                        </button>
+                      </div>
                       <strong style={{ color: tokenLimit && tokenLimit.used > tokenLimit.max ? '#ef4444' : 'var(--text)' }}>
                         {tokenLimit ? `${(tokenLimit.used / 1000).toFixed(0)}k / ${(tokenLimit.max / 1000).toFixed(0)}k` : 'Loading...'}
                       </strong>
