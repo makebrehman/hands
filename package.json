@@ -55,7 +55,7 @@
       "identity"
     ],
     "oauth2": {
-      "client_id": "YOUR_GOOGLE_OAUTH_CLIENT_ID.apps.googleusercontent.com",
+      "client_id": "937512875224-seerejuh2cdi4hbfvvn5coaoh7m6j65b.apps.googleusercontent.com",
       "scopes": ["https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"]
     },
     "side_panel": {
