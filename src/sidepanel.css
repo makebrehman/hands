@@ -748,3 +748,5 @@ input:checked + .hands-slider:before {
   transform: translateX(14px);
   background-color: var(--bg);
 }
+
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

@@ -47,6 +47,7 @@ export default function SidePanel() {
   
   // Phase 4 State (Auth & Limits)
   const [authToken, setAuthToken] = useState("")
+  const [userEmail, setUserEmail] = useState("")
   const [tokenLimit, setTokenLimit] = useState<{used: number, max: number} | null>(null)
   const [isRefreshingTokens, setIsRefreshingTokens] = useState(false)
   
@@ -113,15 +114,16 @@ export default function SidePanel() {
   }, [streamScreenshot])
 
   useEffect(() => {
-    chrome.storage.local.get(["apiKey", "baseUrl", "useCustomProvider", "customModel", "authToken"], (storage) => {
+    chrome.storage.local.get(["apiKey", "baseUrl", "useCustomProvider", "customModel", "authToken", "userEmail"], (storage) => {
       if (storage.apiKey) setApiKey(storage.apiKey)
       if (storage.baseUrl) setBaseUrl(storage.baseUrl)
       if (storage.useCustomProvider !== undefined) setUseCustomProvider(storage.useCustomProvider)
       if (storage.customModel) setCustomModel(storage.customModel)
+      if (storage.userEmail) setUserEmail(storage.userEmail)
       if (storage.authToken) {
         setAuthToken(storage.authToken)
         // Mock token limit for now since backend is not connected
-        setTokenLimit({ used: 125000, max: 500000 })
+        setTokenLimit({ used: 0, max: 500000 })
       }
     })
     chrome.runtime.sendMessage({ type: "GET_STATE" }, (res) => {
@@ -383,10 +385,26 @@ export default function SidePanel() {
         showToast("Login failed: " + (chrome.runtime.lastError?.message || "Unknown error"), "error");
         return;
       }
-      chrome.storage.local.set({ authToken: token }, () => {
-        setAuthToken(token);
-        setTokenLimit({ used: 125000, max: 500000 }); // Mock load
-        showToast("Successfully signed in!", "success");
+      
+      // Fetch user profile info
+      fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then(res => res.json()).then(data => {
+        const email = data?.email || "";
+        chrome.storage.local.set({ authToken: token, userEmail: email }, () => {
+          setAuthToken(token);
+          setUserEmail(email);
+          setTokenLimit({ used: 0, max: 500000 }); // Mock load
+          showToast("Successfully signed in!", "success");
+        });
+      }).catch(err => {
+        console.error("Failed to fetch user email", err);
+        // Fallback if fetch fails
+        chrome.storage.local.set({ authToken: token }, () => {
+          setAuthToken(token);
+          setTokenLimit({ used: 0, max: 500000 }); // Mock load
+          showToast("Successfully signed in!", "success");
+        });
       });
     });
   };
@@ -395,7 +413,7 @@ export default function SidePanel() {
     setIsRefreshingTokens(true);
     // Mock network delay for now
     setTimeout(() => {
-      setTokenLimit({ used: 125000, max: 500000 }); // In the future this will fetch from backend
+      setTokenLimit({ used: 0, max: 500000 }); // Mock load
       setIsRefreshingTokens(false);
       showToast("Token count refreshed", "success");
     }, 800);
@@ -403,8 +421,9 @@ export default function SidePanel() {
 
   const signOut = () => {
     chrome.identity.removeCachedAuthToken({ token: authToken }, () => {
-      chrome.storage.local.remove(["authToken"], () => {
+      chrome.storage.local.remove(["authToken", "userEmail"], () => {
         setAuthToken("");
+        setUserEmail("");
         setTokenLimit(null);
         showToast("Signed out successfully", "success");
       });
@@ -603,6 +622,11 @@ export default function SidePanel() {
                 <div>Currently using the secure <strong>Hands Cloud</strong> provider.</div>
                 {authToken ? (
                   <>
+                    {userEmail && (
+                      <div style={{ color: 'var(--text-dim)', fontSize: '11px', marginTop: '2px', marginBottom: '4px' }}>
+                        Signed in as: <strong>{userEmail}</strong>
+                      </div>
+                    )}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span style={{ color: 'var(--text-muted)' }}>Tokens Used Today:</span>
