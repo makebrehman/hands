@@ -90,18 +90,23 @@ export default function SidePanel() {
           clearInterval(pollingRef.current)
           pollingRef.current = null
         }
-        showToast(msg.error, "error")
         setStreamError(true)
         setIsLoading(false)
         setIsStreaming(false)
         setStatus("Failed")
         chrome.storage.local.set({ streamBuffer: "", streamDone: false, streamStatus: "", streamScreenshot: null })
-        setMessages(prev => [...prev, {
-          role: "assistant",
-          isError: true,
-          text: msg.error || "Failed to communicate with AI provider",
-          screenshot: streamScreenshot || undefined
-        }])
+        
+        chrome.storage.local.get(["useCustomProvider"], (s) => {
+          const isCustom = !!s.useCustomProvider;
+          const errMsg = isCustom ? (msg.error || "Failed to communicate with AI provider") : "Hands Cloud is currently experiencing heavy load or network issues. Please try again in a moment.";
+          showToast(isCustom ? msg.error : "Hands Cloud server is not responding", "error");
+          setMessages(prev => [...prev, {
+            role: "assistant",
+            isError: true,
+            text: errMsg,
+            screenshot: streamScreenshot || undefined
+          }]);
+        });
       }
     }
     chrome.runtime.onMessage.addListener(handleMsg)
@@ -205,12 +210,17 @@ export default function SidePanel() {
           setStatus("Failed")
           setStreamError(true)
           chrome.storage.local.set({ streamBuffer: "", streamDone: false, streamStatus: "", streamScreenshot: null })
-          setMessages(prev => [...prev, { 
-            role: "assistant", 
-            isError: true, 
-            text: result.streamBuffer || "Failed to communicate with AI provider",
-            screenshot: streamScreenshot || undefined
-          }])
+          
+          chrome.storage.local.get(["useCustomProvider"], (s) => {
+            const isCustom = !!s.useCustomProvider;
+            const errMsg = isCustom ? (result.streamBuffer || "Failed to communicate with AI provider") : "Hands Cloud is currently experiencing heavy load or network issues. Please try again in a moment.";
+            setMessages(prev => [...prev, { 
+              role: "assistant", 
+              isError: true, 
+              text: errMsg,
+              screenshot: streamScreenshot || undefined
+            }])
+          })
           return
         }
 
