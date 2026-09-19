@@ -658,11 +658,13 @@ export default function SidePanel() {
         </div>
       ) : (
         <>
-          <div className="hands-chat-area">
+          <div className="hands-messages">
             {messages.length === 0 && !isLoading && (
-              <div className="hands-empty-state">
-                <HandsLogo animated={false} />
-                <div style={{ marginTop: '16px', color: 'var(--text-dim)' }}>How can I help you today?</div>
+              <div className="hands-empty">
+                <div className="hands-empty-icon" style={{ marginBottom: '16px' }}>
+                  <HandsLogo animated={true} className="hands-empty-logo" />
+                </div>
+                <div style={{ color: 'var(--text-dim)' }}>How can I help you today?</div>
               </div>
             )}
 
@@ -710,16 +712,14 @@ export default function SidePanel() {
                 <div className="hands-msg-bubble">
                   <div style={{ marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
                     <HandsLogo animated={true} />
-                    <span style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      {status || "Thinking"}
+                    {activeTabUrl && (
+                      <img src={`chrome-extension://${chrome.runtime.id}/_favicon/?pageUrl=${encodeURIComponent(activeTabUrl)}&size=32`} style={{ width: '16px', height: '16px', borderRadius: '2px', opacity: 0.9 }} title="Active Tab Context" alt="" />
+                    )}
+                    <span className="hands-thinking-indicator">
+                      <span className="hands-status-dot" />
+                      <span>{status || "Thinking..."}</span>
                     </span>
                   </div>
-                  {streamScreenshot && (
-                    <div style={{ marginBottom: '12px' }}>
-                      <div style={{ fontSize: '10px', color: 'var(--text-dim)', marginBottom: '4px', textTransform: 'uppercase' }}>Visual Context</div>
-                      <img src={streamScreenshot} style={{ width: '100%', borderRadius: '4px', border: '1px solid var(--border)' }} alt="Agent Vision Context" />
-                    </div>
-                  )}
                   {activeStream ? <MessageContent text={activeStream} /> : null}
                 </div>
               </div>
@@ -770,7 +770,6 @@ export default function SidePanel() {
                 onKeyDown={handleKeyDown}
                 disabled={isLoading}
                 rows={1}
-                style={{ resize: 'none', overflow: 'hidden', minHeight: '40px', maxHeight: '120px' }}
               />
               {isLoading ? (
                 <button 
@@ -784,16 +783,11 @@ export default function SidePanel() {
                 <button 
                   className="hands-send-btn" 
                   onClick={sendMessage}
-                  disabled={!input.trim() && selectedImages.length === 0}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                  disabled={(!input.trim() && selectedImages.length === 0)}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
                 </button>
               )}
             </div>
-            {activeTabUrl && (
-              <div style={{ fontSize: '10px', color: 'var(--text-dim)', textAlign: 'center', marginTop: '4px' }}>
-                Agent can see: {new URL(activeTabUrl).hostname}
-              </div>
-            )}
           </div>
         </>
       )}
