@@ -627,8 +627,6 @@ export default function SidePanel() {
           </div>
         )}
 
-      <div className="hands-messages">
-        {messages.length === 0 && !isStreaming && (
       {(!authToken && !useCustomProvider) ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '20px', padding: '20px', flex: 1 }}>
           <HandsLogo animated={false} style={{ width: '64px', height: '64px' }} />
