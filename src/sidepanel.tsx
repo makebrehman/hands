@@ -629,136 +629,172 @@ export default function SidePanel() {
 
       <div className="hands-messages">
         {messages.length === 0 && !isStreaming && (
-          <div className="hands-empty">
-            <div className="hands-empty-icon" style={{ marginBottom: '16px' }}>
-              <HandsLogo animated={true} className="hands-empty-logo" />
-            </div>
-            <p>Tell me what to do.</p>
-            <p className="hands-empty-hint">I can click, type, navigate, search history, open tabs, take screenshots, and more.</p>
+      {(!authToken && !useCustomProvider) ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '20px', padding: '20px', flex: 1 }}>
+          <HandsLogo animated={false} style={{ width: '64px', height: '64px' }} />
+          <h2 style={{ fontSize: '20px', margin: 0, fontWeight: 600 }}>Welcome to Hands</h2>
+          <p style={{ textAlign: 'center', color: 'var(--text-dim)', margin: 0, fontSize: '14px' }}>
+            Choose how you want to connect to the Hands Cloud to get started.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', marginTop: '20px' }}>
+            <button 
+              className="hands-btn-primary" 
+              onClick={signIn}
+              style={{ width: '100%', padding: '12px', fontSize: '14px' }}>
+              Continue with Google
+            </button>
+            <button 
+              className="hands-btn-secondary" 
+              onClick={() => {
+                setUseCustomProvider(true);
+                setShowSettings(true);
+              }}
+              style={{ width: '100%', padding: '12px', fontSize: '14px', backgroundColor: 'transparent', color: 'var(--text)', border: '1px solid var(--border)' }}>
+              Continue with BYOK
+            </button>
           </div>
-        )}
+        </div>
+      ) : (
+        <>
+          <div className="hands-chat-area">
+            {messages.length === 0 && !isLoading && (
+              <div className="hands-empty-state">
+                <HandsLogo animated={false} />
+                <div style={{ marginTop: '16px', color: 'var(--text-dim)' }}>How can I help you today?</div>
+              </div>
+            )}
 
-        {messages.map((msg, i) => (
-          <div key={i} className={`hands-msg hands-msg-${msg.role}`}>
-            <div className="hands-msg-bubble">
-              {msg.role === "assistant" && (
-                <div style={{ marginBottom: (msg.text || msg.isError) ? "8px" : "0", display: "flex", alignItems: "center", gap: "8px" }}>
-                  <HandsLogo animated={false} />
+            {messages.map((msg, i) => (
+              <div key={i} className={`hands-msg hands-msg-${msg.role}`}>
+                <div className="hands-msg-bubble">
+                  {msg.role === "assistant" && (
+                    <div style={{ marginBottom: (msg.text || msg.isError) ? "8px" : "0", display: "flex", alignItems: "center", gap: "8px" }}>
+                      <HandsLogo animated={false} />
+                      {msg.isError && (
+                        <span className="hands-failed-badge">
+                          <span className="hands-failed-dot" />
+                          <span>Failed</span>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {msg.images && msg.images.length > 0 && (
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                      {msg.images.map((img, idx) => (
+                        <img key={idx} src={img} style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '4px' }} alt="User Context" />
+                      ))}
+                    </div>
+                  )}
+                  {msg.isError ? (
+                    <div className="hands-error-banner">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                      <span>{msg.text || "An unexpected error occurred with the AI provider."}</span>
+                    </div>
+                  ) : (
+                    msg.text ? <MessageContent text={msg.text} /> : null
+                  )}
+
                   {msg.isError && (
-                    <span className="hands-failed-badge">
-                      <span className="hands-failed-dot" />
-                      <span>Failed</span>
-                    </span>
+                    <button className="hands-retry-btn" onClick={retryLast}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg> Retry
+                    </button>
                   )}
                 </div>
-              )}
-              {msg.images && msg.images.length > 0 && (
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                  {msg.images.map((img, idx) => (
-                    <img key={idx} src={img} style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '4px' }} alt="User Context" />
-                  ))}
-                </div>
-              )}
-              {msg.isError ? (
-                <div className="hands-error-banner">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                  <span>{msg.text || "An unexpected error occurred with the AI provider."}</span>
-                </div>
-              ) : (
-                msg.text ? <MessageContent text={msg.text} /> : null
-              )}
-
-              {msg.isError && (
-                <button className="hands-retry-btn" onClick={retryLast}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg> Retry
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
-
-        {isStreaming && (
-          <div className="hands-msg hands-msg-assistant">
-            <div className="hands-msg-bubble">
-              <div style={{ marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
-                <HandsLogo animated={true} />
-                {activeTabUrl && (
-                  <img src={`chrome-extension://${chrome.runtime.id}/_favicon/?pageUrl=${encodeURIComponent(activeTabUrl)}&size=32`} style={{ width: '16px', height: '16px', borderRadius: '2px', opacity: 0.9 }} title="Active Tab Context" alt="" />
-                )}
-                <span className="hands-thinking-indicator">
-                  <span className="hands-status-dot" />
-                  <span>{status || "Thinking..."}</span>
-                </span>
-              </div>
-              {activeStream && <MessageContent text={activeStream} />}
-            </div>
-          </div>
-        )}
-
-        <div ref={bottomRef} />
-      </div>
-
-      <div className="hands-input-area" style={{ flexDirection: 'column', gap: '8px' }}>
-        {selectedImages.length > 0 && (
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {selectedImages.map((img, idx) => (
-              <div key={idx} style={{ position: 'relative' }}>
-                <img src={img} style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--border)' }} />
-                <button 
-                  onClick={() => removeImage(idx)}
-                  className="hands-img-remove-btn"
-                  title="Remove image">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
               </div>
             ))}
+
+            {isStreaming && (
+              <div className="hands-msg hands-msg-assistant">
+                <div className="hands-msg-bubble">
+                  <div style={{ marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <HandsLogo animated={true} />
+                    <span style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      {status || "Thinking"}
+                    </span>
+                  </div>
+                  {streamScreenshot && (
+                    <div style={{ marginBottom: '12px' }}>
+                      <div style={{ fontSize: '10px', color: 'var(--text-dim)', marginBottom: '4px', textTransform: 'uppercase' }}>Visual Context</div>
+                      <img src={streamScreenshot} style={{ width: '100%', borderRadius: '4px', border: '1px solid var(--border)' }} alt="Agent Vision Context" />
+                    </div>
+                  )}
+                  {activeStream ? <MessageContent text={activeStream} /> : null}
+                </div>
+              </div>
+            )}
+            
+            <div ref={bottomRef} />
           </div>
-        )}
-        <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
-          <button 
-            className="hands-icon-btn" 
-            onClick={() => fileInputRef.current?.click()}
-            title="Upload Image"
-            disabled={selectedImages.length >= 5 || isLoading}
-            style={{ alignSelf: 'flex-end', padding: '12px 8px' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          </button>
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleFileChange} 
-            accept="image/png, image/jpeg, image/webp, image/gif" 
-            multiple 
-            style={{ display: 'none' }} 
-          />
-          <textarea
-            ref={inputRef}
-            className="hands-input"
-            placeholder="Tell Hands what to do..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            rows={1}
-            disabled={isLoading}
-          />
-          {isLoading ? (
-            <button
-              className="hands-send-btn"
-              style={{ backgroundColor: '#dc3545', color: 'white', borderColor: '#dc3545' }}
-              title="Force Stop Agent"
-              onClick={stopAgent}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="6" width="12" height="12"></rect></svg>
-            </button>
-          ) : (
-            <button
-              className="hands-send-btn"
-              onClick={sendMessage}
-              disabled={(!input.trim() && selectedImages.length === 0)}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
-            </button>
-          )}
-        </div>
-      </div>
+
+          <div className="hands-input-area" style={{ flexDirection: 'column', gap: '8px' }}>
+            {selectedImages.length > 0 && (
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {selectedImages.map((img, idx) => (
+                  <div key={idx} style={{ position: 'relative' }}>
+                    <img src={img} style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--border)' }} />
+                    <button 
+                      onClick={() => removeImage(idx)}
+                      className="hands-img-remove-btn"
+                      title="Remove image">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+              <button 
+                className="hands-icon-btn" 
+                onClick={() => fileInputRef.current?.click()}
+                title="Upload Image"
+                disabled={selectedImages.length >= 5 || isLoading}
+                style={{ alignSelf: 'flex-end', padding: '12px 8px' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </button>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileChange} 
+                accept="image/png, image/jpeg, image/webp, image/gif" 
+                multiple 
+                style={{ display: 'none' }} 
+              />
+              <textarea
+                ref={inputRef}
+                className="hands-input"
+                placeholder="Tell Hands what to do..."
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={isLoading}
+                rows={1}
+                style={{ resize: 'none', overflow: 'hidden', minHeight: '40px', maxHeight: '120px' }}
+              />
+              {isLoading ? (
+                <button 
+                  className="hands-send-btn"
+                  style={{ backgroundColor: '#dc3545', color: 'white', borderColor: '#dc3545' }}
+                  title="Force Stop Agent"
+                  onClick={stopAgent}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="6" width="12" height="12"></rect></svg>
+                </button>
+              ) : (
+                <button 
+                  className="hands-send-btn" 
+                  onClick={sendMessage}
+                  disabled={!input.trim() && selectedImages.length === 0}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+              )}
+            </div>
+            {activeTabUrl && (
+              <div style={{ fontSize: '10px', color: 'var(--text-dim)', textAlign: 'center', marginTop: '4px' }}>
+                Agent can see: {new URL(activeTabUrl).hostname}
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }
