@@ -598,6 +598,17 @@ export default function SidePanel() {
                         {tokenLimit ? `${(tokenLimit.used / 1000).toFixed(0)}k / ${(tokenLimit.max / 1000).toFixed(0)}k` : 'Loading...'}
                       </strong>
                     </div>
+                    {tokenLimit && (
+                      <div style={{ width: '100%', height: '6px', background: 'var(--bg-4)', borderRadius: '3px', marginTop: '8px', overflow: 'hidden' }}>
+                        <div style={{ 
+                          width: `${Math.min(100, (tokenLimit.used / tokenLimit.max) * 100)}%`, 
+                          height: '100%', 
+                          background: tokenLimit.used > tokenLimit.max ? '#ef4444' : 'var(--accent)', 
+                          borderRadius: '3px',
+                          transition: 'width 0.3s ease'
+                        }} />
+                      </div>
+                    )}
                     {tokenLimit && tokenLimit.used > tokenLimit.max && (
                       <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>Daily limit reached. Please use your own API key.</div>
                     )}
