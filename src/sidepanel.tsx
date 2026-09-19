@@ -48,7 +48,7 @@ export default function SidePanel() {
   // Phase 4 State (Auth & Limits)
   const [authToken, setAuthToken] = useState("")
   const [userEmail, setUserEmail] = useState("")
-  const [tokenLimit, setTokenLimit] = useState<{used: number, max: number} | null>(null)
+  const [tokenLimit, setTokenLimit] = useState<{weekly: {used: number, max: number}, hourly: {used: number, max: number}} | null>(null)
   const [isRefreshingTokens, setIsRefreshingTokens] = useState(false)
   
   // Phase 3 State
@@ -128,7 +128,7 @@ export default function SidePanel() {
       if (storage.authToken) {
         setAuthToken(storage.authToken)
         
-        let initialTokens = { used: 0, max: 500000 };
+        let initialTokens = { weekly: {used: 0, max: 500000}, hourly: {used: 0, max: 150000} };
         chrome.runtime.sendMessage({ 
           type: "FETCH_TOKENS", 
           token: storage.authToken, 
@@ -408,7 +408,7 @@ export default function SidePanel() {
         const email = infoRes?.success ? (infoRes.data?.email || "") : "";
         
         chrome.runtime.sendMessage({ type: "FETCH_TOKENS", token, baseUrl: baseUrl || "https://bilinil.vercel.app" }, (tRes) => {
-          let initialTokens = { used: 0, max: 500000 };
+          let initialTokens = { weekly: {used: 0, max: 500000}, hourly: {used: 0, max: 150000} };
           if (tRes?.success) initialTokens = tRes.data;
 
           chrome.storage.local.set({ authToken: token, userEmail: email }, () => {
@@ -426,7 +426,7 @@ export default function SidePanel() {
     setIsRefreshingTokens(true);
     chrome.runtime.sendMessage({ type: "FETCH_TOKENS", token: authToken, baseUrl: baseUrl || "https://bilinil.vercel.app" }, (res) => {
       if (res?.success) {
-        setTokenLimit({ used: res.data.used, max: res.data.max });
+        setTokenLimit(res.data);
         showToast("Token count refreshed", "success");
       } else {
         showToast("Failed to refresh tokens: " + (res?.error || "Unknown error"), "error");
@@ -634,68 +634,92 @@ export default function SidePanel() {
                 </div>
               </>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: 'var(--bg-2)', borderRadius: '6px', fontSize: '13px', color: 'var(--text)' }}>
-                <div>Currently using the secure <strong>Hands Cloud</strong> provider.</div>
-                {authToken ? (
-                  <>
-                    {userEmail && (
-                      <div style={{ color: 'var(--text-dim)', fontSize: '11px', marginTop: '2px', marginBottom: '4px' }}>
-                        Signed in as: <strong>{userEmail}</strong>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: 'var(--bg-2)', borderRadius: '6px', fontSize: '13px', color: 'var(--text)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>Currently using <strong>Hands Super Model</strong></div>
+                    {authToken && userEmail && (
+                      <div style={{ background: 'var(--bg-4)', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', color: 'var(--text-dim)' }}>
+                        {userEmail}
                       </div>
                     )}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ color: 'var(--text-muted)' }}>Tokens Used Today:</span>
+                  </div>
+                  
+                  {authToken ? (
+                    <>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
+                        
+                        {/* Weekly Limit */}
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ color: 'var(--text-muted)' }}>Tokens this Week</span>
+                              <button 
+                                onClick={refreshTokens} 
+                                disabled={isRefreshingTokens}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                title="Refresh token count"
+                              >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: isRefreshingTokens ? 'spin 1s linear infinite' : 'none' }}>
+                                  <polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                </svg>
+                              </button>
+                            </div>
+                            <strong style={{ color: tokenLimit && tokenLimit.weekly.used >= tokenLimit.weekly.max ? '#ef4444' : 'var(--text)' }}>
+                              {tokenLimit ? `${(tokenLimit.weekly.used / 1000).toFixed(0)}k / ${(tokenLimit.weekly.max / 1000).toFixed(0)}k` : 'Loading...'}
+                            </strong>
+                          </div>
+                          {tokenLimit && (
+                            <div style={{ width: '100%', height: '4px', background: 'var(--bg-4)', borderRadius: '2px', overflow: 'hidden' }}>
+                              <div style={{ width: `${Math.min(100, (tokenLimit.weekly.used / tokenLimit.weekly.max) * 100)}%`, height: '100%', background: tokenLimit.weekly.used >= tokenLimit.weekly.max ? '#ef4444' : 'var(--accent)', borderRadius: '2px', transition: 'width 0.3s ease' }} />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Hourly Limit */}
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                            <span style={{ color: 'var(--text-muted)' }}>Hourly Burst Limit</span>
+                            <strong style={{ color: tokenLimit && tokenLimit.hourly.used >= tokenLimit.hourly.max ? '#ef4444' : 'var(--text)' }}>
+                              {tokenLimit ? `${(tokenLimit.hourly.used / 1000).toFixed(0)}k / ${(tokenLimit.hourly.max / 1000).toFixed(0)}k` : 'Loading...'}
+                            </strong>
+                          </div>
+                          {tokenLimit && (
+                            <div style={{ width: '100%', height: '4px', background: 'var(--bg-4)', borderRadius: '2px', overflow: 'hidden' }}>
+                              <div style={{ width: `${Math.min(100, (tokenLimit.hourly.used / tokenLimit.hourly.max) * 100)}%`, height: '100%', background: tokenLimit.hourly.used >= tokenLimit.hourly.max ? '#ef4444' : 'var(--accent)', borderRadius: '2px', transition: 'width 0.3s ease' }} />
+                            </div>
+                          )}
+                        </div>
+
+                      </div>
+
+                      {tokenLimit && (tokenLimit.weekly.used >= tokenLimit.weekly.max || tokenLimit.hourly.used >= tokenLimit.hourly.max) && (
+                        <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>Limit reached. Upgrade to Pro or use BYOK.</div>
+                      )}
+                      
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                        <a 
+                          href="https://hands.app/#pricing"
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{ flex: 1, padding: '6px', background: 'var(--text)', color: 'var(--bg)', border: '1px solid var(--text)', borderRadius: '4px', cursor: 'pointer', textDecoration: 'none', textAlign: 'center', fontWeight: '500' }}>
+                          Upgrade
+                        </a>
                         <button 
-                          onClick={refreshTokens} 
-                          disabled={isRefreshingTokens}
-                          style={{ 
-                            background: 'none', border: 'none', cursor: 'pointer', padding: '2px', 
-                            color: 'var(--text-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                          }}
-                          title="Refresh token count"
-                        >
-                          <svg 
-                            width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                            style={{ animation: isRefreshingTokens ? 'spin 1s linear infinite' : 'none' }}
-                          >
-                            <polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                          </svg>
+                          onClick={signOut}
+                          style={{ flex: 1, padding: '6px', background: 'transparent', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text)', cursor: 'pointer' }}>
+                          Sign Out
                         </button>
                       </div>
-                      <strong style={{ color: tokenLimit && tokenLimit.used > tokenLimit.max ? '#ef4444' : 'var(--text)' }}>
-                        {tokenLimit ? `${(tokenLimit.used / 1000).toFixed(0)}k / ${(tokenLimit.max / 1000).toFixed(0)}k` : 'Loading...'}
-                      </strong>
-                    </div>
-                    {tokenLimit && (
-                      <div style={{ width: '100%', height: '6px', background: 'var(--bg-4)', borderRadius: '3px', marginTop: '8px', overflow: 'hidden' }}>
-                        <div style={{ 
-                          width: `${Math.min(100, (tokenLimit.used / tokenLimit.max) * 100)}%`, 
-                          height: '100%', 
-                          background: tokenLimit.used > tokenLimit.max ? '#ef4444' : 'var(--accent)', 
-                          borderRadius: '3px',
-                          transition: 'width 0.3s ease'
-                        }} />
-                      </div>
-                    )}
-                    {tokenLimit && tokenLimit.used > tokenLimit.max && (
-                      <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>Daily limit reached. Please use your own API key.</div>
-                    )}
+                    </>
+                  ) : (
                     <button 
-                      onClick={signOut}
-                      style={{ marginTop: '8px', padding: '6px', background: 'transparent', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text)', cursor: 'pointer' }}>
-                      Sign Out
+                      onClick={signIn}
+                      className="hands-btn-primary"
+                      style={{ marginTop: '8px', padding: '8px' }}>
+                      Sign in with Google
                     </button>
-                  </>
-                ) : (
-                  <button 
-                    onClick={signIn}
-                    className="hands-btn-primary"
-                    style={{ marginTop: '8px', padding: '8px' }}>
-                    Sign in with Google
-                  </button>
-                )}
-              </div>
+                  )}
+                </div>
             )}
             
             <button 
