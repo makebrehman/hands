@@ -132,7 +132,7 @@ export default function SidePanel() {
         chrome.runtime.sendMessage({ 
           type: "FETCH_TOKENS", 
           token: storage.authToken, 
-          baseUrl: storage.baseUrl || "https://hands.app" 
+          baseUrl: storage.baseUrl || "https://bilinil.vercel.app" 
         }, (res) => {
           if (res?.success) initialTokens = res.data;
           setTokenLimit(initialTokens);
@@ -407,7 +407,7 @@ export default function SidePanel() {
       chrome.runtime.sendMessage({ type: "FETCH_USER_INFO", token }, (infoRes) => {
         const email = infoRes?.success ? (infoRes.data?.email || "") : "";
         
-        chrome.runtime.sendMessage({ type: "FETCH_TOKENS", token, baseUrl }, (tRes) => {
+        chrome.runtime.sendMessage({ type: "FETCH_TOKENS", token, baseUrl: baseUrl || "https://bilinil.vercel.app" }, (tRes) => {
           let initialTokens = { used: 0, max: 500000 };
           if (tRes?.success) initialTokens = tRes.data;
 
@@ -424,12 +424,12 @@ export default function SidePanel() {
 
   const refreshTokens = async () => {
     setIsRefreshingTokens(true);
-    chrome.runtime.sendMessage({ type: "FETCH_TOKENS", token: authToken, baseUrl }, (res) => {
+    chrome.runtime.sendMessage({ type: "FETCH_TOKENS", token: authToken, baseUrl: baseUrl || "https://bilinil.vercel.app" }, (res) => {
       if (res?.success) {
         setTokenLimit({ used: res.data.used, max: res.data.max });
         showToast("Token count refreshed", "success");
       } else {
-        showToast("Failed to refresh tokens", "error");
+        showToast("Failed to refresh tokens: " + (res?.error || "Unknown error"), "error");
       }
       setIsRefreshingTokens(false);
     });

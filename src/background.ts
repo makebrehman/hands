@@ -1808,7 +1808,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       headers: { Authorization: `Bearer ${message.token}` }
     })
       .then(async (res) => {
-        if (!res.ok) throw new Error("Failed to fetch");
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`Server returned ${res.status}: ${errText}`);
+        }
         return res.json();
       })
       .then(data => sendResponse({ success: true, data }))
