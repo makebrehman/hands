@@ -464,13 +464,29 @@ export default function SidePanel() {
       });
     };
 
-    chrome.identity.getAuthToken({ interactive: true }, (token) => {
-      if (chrome.runtime.lastError || !token) {
-        console.error("Login failed", chrome.runtime.lastError);
-        showToast("Login failed: " + (chrome.runtime.lastError?.message || "Unknown error"), "error");
+    const webClientId = "937512875224-dcr7l32cmpbplg3gd0grtk410v5i6h0p.apps.googleusercontent.com";
+    const redirectUri = chrome.identity.getRedirectURL();
+    const scopes = encodeURIComponent("https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile");
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${webClientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&prompt=select_account`;
+
+    chrome.identity.launchWebAuthFlow({ url: authUrl, interactive: true }, (redirectResponse) => {
+      if (chrome.runtime.lastError || !redirectResponse) {
+        console.error("WebAuthFlow error:", chrome.runtime.lastError);
+        const errMsg = chrome.runtime.lastError?.message || "";
+        if (errMsg.includes("User cancelled") || errMsg.includes("closed")) {
+          showToast("Sign-in cancelled", "error");
+          return;
+        }
+        showToast("Sign-in error: " + (errMsg || "Unknown error"), "error");
         return;
       }
-      onGoogleTokenReceived(token);
+
+      const m = redirectResponse.match(/[#&]access_token=([^&]+)/);
+      if (m && m[1]) {
+        onGoogleTokenReceived(m[1]);
+      } else {
+        showToast("Failed to retrieve access token", "error");
+      }
     });
   };
 
