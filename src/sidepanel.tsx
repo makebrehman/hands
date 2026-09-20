@@ -464,45 +464,14 @@ export default function SidePanel() {
       });
     };
 
-    // 1. First attempt launchWebAuthFlow with prompt=select_account to let user choose their account
-    try {
-      const manifest = chrome.runtime.getManifest();
-      const clientId = manifest.oauth2?.client_id || "937512875224-seerejuh2cdi4hbfvvn5coaoh7m6j65b.apps.googleusercontent.com";
-      const redirectUri = chrome.identity.getRedirectURL();
-      const scopes = encodeURIComponent((manifest.oauth2?.scopes || [
-        "https://www.googleapis.com/auth/userinfo.email",
-        "https://www.googleapis.com/auth/userinfo.profile"
-      ]).join(" "));
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&prompt=select_account`;
-
-      chrome.identity.launchWebAuthFlow({ url: authUrl, interactive: true }, (redirectResponse) => {
-        if (!chrome.runtime.lastError && redirectResponse) {
-          const m = redirectResponse.match(/[#&]access_token=([^&]+)/);
-          if (m && m[1]) {
-            onGoogleTokenReceived(m[1]);
-            return;
-          }
-        }
-        // Fallback to getAuthToken if launchWebAuthFlow fails (e.g. redirect URI not configured for current ID)
-        console.log("launchWebAuthFlow fallback to getAuthToken:", chrome.runtime.lastError?.message);
-        chrome.identity.getAuthToken({ interactive: true }, (token) => {
-          if (chrome.runtime.lastError || !token) {
-            console.error("Login failed", chrome.runtime.lastError);
-            showToast("Login failed: " + (chrome.runtime.lastError?.message || "Unknown error"), "error");
-            return;
-          }
-          onGoogleTokenReceived(token);
-        });
-      });
-    } catch (err) {
-      chrome.identity.getAuthToken({ interactive: true }, (token) => {
-        if (chrome.runtime.lastError || !token) {
-          showToast("Login failed: " + (chrome.runtime.lastError?.message || "Unknown error"), "error");
-          return;
-        }
-        onGoogleTokenReceived(token);
-      });
-    }
+    chrome.identity.getAuthToken({ interactive: true }, (token) => {
+      if (chrome.runtime.lastError || !token) {
+        console.error("Login failed", chrome.runtime.lastError);
+        showToast("Login failed: " + (chrome.runtime.lastError?.message || "Unknown error"), "error");
+        return;
+      }
+      onGoogleTokenReceived(token);
+    });
   };
 
   const refreshTokens = async () => {
