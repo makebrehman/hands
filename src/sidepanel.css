@@ -82,10 +82,10 @@ body {
 }
 
 .hands-logo-name {
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 700;
+  font-size: 16.5px;
   color: var(--text);
-  letter-spacing: 0.02em;
+  letter-spacing: -0.01em;
 }
 
 .hands-msg-count {
