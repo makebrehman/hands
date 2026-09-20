@@ -48,8 +48,9 @@ export default function SidePanel() {
   // Phase 4 State (Auth & Limits)
   const [authToken, setAuthToken] = useState("")
   const [userEmail, setUserEmail] = useState("")
-  const [tokenLimit, setTokenLimit] = useState<{weekly: {used: number, max: number}, hourly: {used: number, max: number}} | null>(null)
+  const [tokenLimit, setTokenLimit] = useState<{weekly: {used: number, max: number}, hourly: {used: number, max: number}, tier?: string} | null>(null)
   const [isRefreshingTokens, setIsRefreshingTokens] = useState(false)
+  const isPro = tokenLimit?.tier === "pro" || (tokenLimit ? tokenLimit.weekly.max >= 5000000 : false)
   
   // Phase 3 State
   const [chatId, setChatId] = useState<string>(generateId())
@@ -98,8 +99,9 @@ export default function SidePanel() {
         
         chrome.storage.local.get(["useCustomProvider"], (s) => {
           const isCustom = !!s.useCustomProvider;
-          const isQuotaError = msg.error && msg.error.includes("Limit Reached");
-          const errMsg = isCustom || isQuotaError ? (msg.error || "Failed to communicate with AI provider") : "Hands Cloud is currently experiencing heavy load or network issues. Please try again in a moment.";
+          const isQuotaError = msg.error && (msg.error.includes("Limit Reached") || msg.error.includes("Burst Limit"));
+          const isTrafficError = msg.error && (msg.error.includes("heavy traffic") || msg.error.includes("rate limits"));
+          const errMsg = isCustom || isQuotaError || isTrafficError ? (msg.error || "Failed to communicate with AI provider") : "Hands Cloud is currently experiencing heavy load or network issues. Please try again in a moment.";
           showToast(errMsg, "error");
           setMessages(prev => [...prev, {
             role: "assistant",
@@ -222,8 +224,9 @@ export default function SidePanel() {
           
           chrome.storage.local.get(["useCustomProvider"], (s) => {
             const isCustom = !!s.useCustomProvider;
-            const isQuotaError = result.streamBuffer && result.streamBuffer.includes("Limit Reached");
-            const errMsg = isCustom || isQuotaError ? (result.streamBuffer || "Failed to communicate with AI provider") : "Hands Cloud is currently experiencing heavy load or network issues. Please try again in a moment.";
+            const isQuotaError = result.streamBuffer && (result.streamBuffer.includes("Limit Reached") || result.streamBuffer.includes("Burst Limit"));
+            const isTrafficError = result.streamBuffer && (result.streamBuffer.includes("heavy traffic") || result.streamBuffer.includes("rate limits"));
+            const errMsg = isCustom || isQuotaError || isTrafficError ? (result.streamBuffer || "Failed to communicate with AI provider") : "Hands Cloud is currently experiencing heavy load or network issues. Please try again in a moment.";
             setMessages(prev => [...prev, { 
               role: "assistant", 
               isError: true, 
@@ -640,8 +643,19 @@ export default function SidePanel() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-start' }}>
                     <div>Currently using <strong>Hands Super Model</strong></div>
                     {authToken && userEmail && (
-                      <div style={{ background: 'var(--bg-4)', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', color: 'var(--text-dim)' }}>
-                        {userEmail}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ background: 'var(--bg-4)', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', color: 'var(--text-dim)' }}>
+                          {userEmail}
+                        </div>
+                        {isPro ? (
+                          <span style={{ background: '#10b981', color: '#ffffff', padding: '1px 6px', borderRadius: '8px', fontSize: '10px', fontWeight: 'bold', letterSpacing: '0.5px' }}>
+                            PRO
+                          </span>
+                        ) : (
+                          <span style={{ background: 'var(--bg-4)', color: 'var(--text-muted)', padding: '1px 6px', borderRadius: '8px', fontSize: '10px', fontWeight: 'bold', letterSpacing: '0.5px' }}>
+                            FREE
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -695,17 +709,21 @@ export default function SidePanel() {
                       </div>
 
                       {tokenLimit && (tokenLimit.weekly.used >= tokenLimit.weekly.max || tokenLimit.hourly.used >= tokenLimit.hourly.max) && (
-                        <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>Limit reached. Upgrade to Pro or use BYOK.</div>
+                        <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
+                          {isPro ? "Hourly Burst Limit reached. Wait a bit or use BYOK." : "Limit reached. Upgrade to Pro or use BYOK."}
+                        </div>
                       )}
                       
                       <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                        <a 
-                          href="https://hands.app/#pricing"
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{ flex: 1, padding: '6px', background: 'var(--text)', color: 'var(--bg)', border: '1px solid var(--text)', borderRadius: '4px', cursor: 'pointer', textDecoration: 'none', textAlign: 'center', fontWeight: '500' }}>
-                          Upgrade
-                        </a>
+                        {!isPro && (
+                          <a 
+                            href="https://hands.app/#pricing"
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{ flex: 1, padding: '6px', background: 'var(--text)', color: 'var(--bg)', border: '1px solid var(--text)', borderRadius: '4px', cursor: 'pointer', textDecoration: 'none', textAlign: 'center', fontWeight: '500' }}>
+                            Upgrade
+                          </a>
+                        )}
                         <button 
                           onClick={signOut}
                           style={{ flex: 1, padding: '6px', background: 'transparent', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text)', cursor: 'pointer' }}>

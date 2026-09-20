@@ -606,13 +606,27 @@ async function callLLMAI(
   }
 
   if (!response.ok) {
-    if (!isCustom && response.status === 429) {
-      throw new Error("Daily Token Limit Reached! Upgrade to Pro, or turn on the 'Custom Provider (BYOK)' toggle in Settings to use your own API key for unlimited access.");
-    }
     let rawText = "";
+    let errJson: any = null;
     try {
       rawText = await response.text();
+      errJson = JSON.parse(rawText);
     } catch {}
+
+    if (!isCustom) {
+      if (errJson?.code === "USER_QUOTA_EXCEEDED" || (response.status === 429 && errJson?.error === "Token limit exceeded")) {
+        const isPro = errJson?.tier === "pro";
+        throw new Error(
+          isPro 
+            ? "Hourly Burst Limit Reached! Please wait for your hourly quota window to refresh, or turn on 'Custom Provider (BYOK)' in Settings."
+            : "Daily Token Limit Reached! Upgrade to Pro, or turn on the 'Custom Provider (BYOK)' toggle in Settings to use your own API key for unlimited access."
+        );
+      }
+      if (errJson?.code === "UPSTREAM_RATE_LIMIT" || response.status === 503 || errJson?.error?.includes("heavy traffic")) {
+        throw new Error("Hands Cloud is currently experiencing heavy traffic or upstream model rate limits. Please try again in a moment.");
+      }
+    }
+
     const cleanErr = formatProviderError(response.status, response.statusText, rawText, targetModel, targetBaseUrl);
     throw new Error(cleanErr);
   }
