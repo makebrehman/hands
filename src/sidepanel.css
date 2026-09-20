@@ -13,9 +13,10 @@
   --bg-3: #222222;
   --bg-4: #333333;
   --border: rgba(255,255,255,0.15);
-  --accent: #ffffff;
-  --accent-dim: rgba(255,255,255,0.2);
-  --shine: #ffffff;
+  --brand: #0000FF;
+  --accent: #0000FF;
+  --accent-dim: rgba(0, 0, 255, 0.15);
+  --shine: #80aaff;
   --text: #ffffff;
   --text-dim: rgba(255,255,255,0.7);
   --text-muted: rgba(255,255,255,0.4);
@@ -71,8 +72,8 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
+  background: var(--brand);
+  box-shadow: 0 0 8px var(--brand);
   animation: pulse 2s ease-in-out infinite;
 }
 
@@ -118,8 +119,34 @@ body {
   background: var(--bg-3);
 }
 
+.hands-clear-btn {
+  background: #0000FF;
+  color: #ffffff !important;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 255, 0.35);
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  line-height: 1;
+}
+
 .hands-clear-btn:hover {
-  color: #f87171;
+  background: #1a1aff;
+  color: #ffffff !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 255, 0.45);
+  transform: translateY(-1px);
+}
+
+.hands-clear-btn:active {
+  transform: translateY(0);
+  background: #0000e6;
+  box-shadow: 0 1px 4px rgba(0, 0, 255, 0.25);
 }
 
 /* ─── SETTINGS ─────────────────────────────────────────── */
@@ -376,32 +403,45 @@ body {
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #000000;
+  background: #0000FF;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 255, 0.35);
+  color: #ffffff;
   font-size: 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: background 0.15s, opacity 0.15s, transform 0.1s;
+  transition: transform 0.15s, background 0.15s, box-shadow 0.15s, opacity 0.15s;
   line-height: 1;
 }
 
 .hands-send-btn svg {
-  stroke: #000000;
+  stroke: #ffffff;
 }
 
 .hands-send-btn:hover:not(:disabled) {
-  background: #e2e8f0;
-  color: #000000;
+  background: #1a1aff;
+  box-shadow: 0 4px 14px rgba(0, 0, 255, 0.45);
+  color: #ffffff;
   transform: translateY(-1px);
+}
+
+.hands-send-btn:hover:not(:disabled) svg {
+  stroke: #ffffff;
+}
+
+.hands-send-btn:active:not(:disabled) {
+  transform: translateY(0);
+  background: #0000e6;
+  box-shadow: 0 1px 4px rgba(0, 0, 255, 0.25);
 }
 
 .hands-send-btn:disabled {
   background: var(--bg-3);
   border: 1px solid var(--border);
+  box-shadow: none;
   color: var(--text-muted);
   opacity: 0.5;
   cursor: not-allowed;
@@ -567,36 +607,45 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
   z-index: 200;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 20px;
+  animation: handsFadeIn 0.15s ease-out;
 }
 .hands-modal {
-  background: var(--bg-2);
-  border: 1px solid var(--border);
+  background: #111111;
+  border: 1px solid rgba(0, 0, 255, 0.4);
+  border-top: 3px solid #0000FF;
   border-radius: var(--radius);
-  padding: 20px;
+  padding: 22px;
   width: 100%;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  max-width: 360px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 24px rgba(0, 0, 255, 0.25);
   color: var(--text);
+  animation: handsModalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .hands-modal-title {
-  font-weight: 600;
-  margin-bottom: 8px;
-  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  font-size: 15px;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .hands-modal-desc {
   color: var(--text-dim);
-  font-size: 14px;
-  margin-bottom: 16px;
-  line-height: 1.4;
+  font-size: 13px;
+  margin-bottom: 18px;
+  line-height: 1.5;
 }
 .hands-modal-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   justify-content: flex-end;
 }
 .hands-btn-primary, .hands-btn-danger, .hands-btn-secondary {
@@ -609,12 +658,22 @@ body {
   transition: background 0.15s, transform 0.1s;
 }
 .hands-btn-primary { 
-  background: #ffffff; 
-  color: #000000; 
-  border: 1px solid #ffffff;
+  background: #0000FF; 
+  color: #ffffff; 
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 255, 0.35);
+  font-weight: 600;
+  transition: transform 0.15s, background 0.15s, box-shadow 0.15s;
 }
 .hands-btn-primary:hover {
-  background: #e2e8f0;
+  background: #1a1aff;
+  box-shadow: 0 4px 14px rgba(0, 0, 255, 0.45);
+  transform: translateY(-1px);
+}
+.hands-btn-primary:active {
+  transform: translateY(0);
+  background: #0000e6;
+  box-shadow: 0 1px 4px rgba(0, 0, 255, 0.25);
 }
 .hands-btn-danger { 
   background: #dc3545; 
@@ -635,36 +694,46 @@ body {
 
 .hands-toasts {
   position: absolute;
-  top: 60px;
+  top: 56px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 8px;
   z-index: 300;
   pointer-events: none;
   max-width: 90%;
   width: max-content;
 }
+
 .hands-toast {
-  background: var(--bg-3);
-  color: var(--text);
-  padding: 8px 16px;
-  border-radius: 12px;
+  background: linear-gradient(135deg, #0000FF, #0055ff, #00a6ff, #0000FF);
+  background-size: 300% 300%;
+  animation: handsToastGradient 4s ease infinite, handsToastSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  color: #ffffff;
+  padding: 9px 18px;
+  border-radius: 20px;
   font-size: 12px;
+  font-weight: 500;
   line-height: 1.4;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
-  border: 1px solid var(--border);
-  max-width: 320px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(0, 97, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  max-width: 340px;
   max-height: 100px;
   overflow: hidden;
   text-overflow: ellipsis;
   word-break: break-word;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
+
 .hands-toast-error {
-  background: #7f1d1d;
-  border-color: #ef4444;
+  background: linear-gradient(135deg, #b91c1c, #dc2626, #ef4444, #b91c1c);
+  background-size: 300% 300%;
+  animation: handsToastGradient 4s ease infinite, handsToastSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(239, 68, 68, 0.5);
 }
 
 .hands-error-banner {
@@ -750,3 +819,12 @@ input:checked + .hands-slider:before {
 }
 
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+.hands-upgrade-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(96, 239, 255, 0.5) !important;
+}
+.hands-upgrade-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(0, 97, 255, 0.3) !important;
+}

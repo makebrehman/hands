@@ -23,7 +23,7 @@ Currently, the LLM API key is hardcoded in the frontend extension code (`backgro
 
 ### Future Architecture:
 1. **User-Provided Keys (Bring Your Own Key):** Build a Settings UI (Options page or Side Panel) where new users can input their own API Key and Endpoint URL. These will be stored securely in `chrome.storage.local`. The extension will route requests directly from the user's browser to their chosen endpoint.
-2. **Secure Built-in Cloud Endpoint:** For users who don't have their own keys, we will provide a "Hands Cloud" toggle. This will route requests to a secure proxy server (e.g., Cloudflare Worker or Node.js backend). The proxy server will hold our master API key in its hidden environment variables, attach it to the incoming requests, and forward them to the LLM provider. This protects our API key from being stolen via Chrome DevTools while still serving the user.
+2. **Secure Built-in Cloud Endpoint:** For users who don't have their own keys, we will provide a "Hands Super model" toggle. This will route requests to a secure proxy server (e.g., Cloudflare Worker or Node.js backend). The proxy server will hold our master API key in its hidden environment variables, attach it to the incoming requests, and forward them to the LLM provider. This protects our API key from being stolen via Chrome DevTools while still serving the user.
 
 
 ## 5. Long-Term Chat Memory Management (Context Window Limits)
