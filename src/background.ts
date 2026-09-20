@@ -1817,6 +1817,24 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true; // Keep message channel open for async response
   }
 
+  if (message.type === "CREATE_SESSION") {
+    fetch(`${message.baseUrl}/api/auth/session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ googleToken: message.googleToken })
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`Server returned ${res.status}: ${errText}`);
+        }
+        return res.json();
+      })
+      .then(data => sendResponse({ success: true, data }))
+      .catch(err => sendResponse({ success: false, error: err.message }));
+    return true; // Keep message channel open for async response
+  }
+
   if (message.type === "FETCH_TOKENS") {
     fetch(`${message.baseUrl}/api/tokens`, {
       headers: { Authorization: `Bearer ${message.token}` }

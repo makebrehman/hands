@@ -122,7 +122,7 @@ export default function SidePanel() {
   }, [streamScreenshot])
 
   useEffect(() => {
-    chrome.storage.local.get(["apiKey", "baseUrl", "useCustomProvider", "customModel", "authToken", "userEmail"], async (storage) => {
+    chrome.storage.local.get(["apiKey", "baseUrl", "useCustomProvider", "customModel", "authToken", "userEmail", "googleToken"], async (storage) => {
       if (storage.apiKey) setApiKey(storage.apiKey)
       if (storage.baseUrl) setBaseUrl(storage.baseUrl)
       if (storage.useCustomProvider !== undefined) setUseCustomProvider(storage.useCustomProvider)
@@ -131,14 +131,37 @@ export default function SidePanel() {
       if (storage.authToken) {
         setAuthToken(storage.authToken)
         
+        const targetBaseUrl = storage.baseUrl || "https://bilinil.vercel.app";
         let initialTokens = { weekly: {used: 0, max: 500000}, hourly: {used: 0, max: 150000} };
         chrome.runtime.sendMessage({ 
           type: "FETCH_TOKENS", 
           token: storage.authToken, 
-          baseUrl: storage.baseUrl || "https://bilinil.vercel.app" 
+          baseUrl: targetBaseUrl 
         }, (res) => {
-          if (res?.success) initialTokens = res.data;
-          setTokenLimit(initialTokens);
+          if (res?.success) {
+            initialTokens = res.data;
+            setTokenLimit(initialTokens);
+          } else if (res?.error && res.error.includes("401")) {
+            // Silently upgrade stale token to a fresh 30-day session
+            chrome.identity.getAuthToken({ interactive: false }, (newGoogleToken) => {
+              if (newGoogleToken) {
+                chrome.runtime.sendMessage({
+                  type: "CREATE_SESSION",
+                  googleToken: newGoogleToken,
+                  baseUrl: targetBaseUrl
+                }, (sessRes) => {
+                  if (sessRes?.success && sessRes.data?.sessionToken) {
+                    const newSession = sessRes.data.sessionToken;
+                    chrome.storage.local.set({ authToken: newSession, googleToken: newGoogleToken });
+                    setAuthToken(newSession);
+                    chrome.runtime.sendMessage({ type: "FETCH_TOKENS", token: newSession, baseUrl: targetBaseUrl }, (retryRes) => {
+                      if (retryRes?.success) setTokenLimit(retryRes.data);
+                    });
+                  }
+                });
+              }
+            });
+          }
         });
       }
     })
@@ -401,48 +424,162 @@ export default function SidePanel() {
   const signIn = () => {
     console.log("signIn clicked");
     showToast("Starting Google Sign-In...", "success");
-    chrome.identity.getAuthToken({ interactive: true }, (token) => {
-      console.log("getAuthToken callback", token, chrome.runtime.lastError);
-      if (chrome.runtime.lastError || !token) {
-        console.error("Login failed", chrome.runtime.lastError);
-        showToast("Login failed: " + (chrome.runtime.lastError?.message || "Unknown error"), "error");
-        return;
-      }
-      
-      chrome.runtime.sendMessage({ type: "FETCH_USER_INFO", token }, (infoRes) => {
-        const email = infoRes?.success ? (infoRes.data?.email || "") : "";
-        
-        chrome.runtime.sendMessage({ type: "FETCH_TOKENS", token, baseUrl: baseUrl || "https://bilinil.vercel.app" }, (tRes) => {
-          let initialTokens = { weekly: {used: 0, max: 500000}, hourly: {used: 0, max: 150000} };
-          if (tRes?.success) initialTokens = tRes.data;
 
-          chrome.storage.local.set({ authToken: token, userEmail: email }, () => {
-            setAuthToken(token);
-            setUserEmail(email);
-            setTokenLimit(initialTokens);
-            showToast("Successfully signed in!", "success");
+    const onGoogleTokenReceived = (googleToken: string) => {
+      chrome.runtime.sendMessage({ type: "FETCH_USER_INFO", token: googleToken }, (infoRes) => {
+        const email = infoRes?.success ? (infoRes.data?.email || "") : "";
+        const targetBaseUrl = baseUrl || "https://bilinil.vercel.app";
+
+        // Exchange Google access token for 30-day Hands Session JWT
+        chrome.runtime.sendMessage({
+          type: "CREATE_SESSION",
+          googleToken,
+          baseUrl: targetBaseUrl
+        }, (sessionRes) => {
+          const sessionToken = (sessionRes?.success && sessionRes.data?.sessionToken) 
+            ? sessionRes.data.sessionToken 
+            : googleToken;
+          const tier = sessionRes?.data?.tier || "free";
+
+          chrome.runtime.sendMessage({ type: "FETCH_TOKENS", token: sessionToken, baseUrl: targetBaseUrl }, (tRes) => {
+            let initialTokens = { 
+              tier,
+              weekly: { used: 0, max: tier === "pro" ? 5000000 : 500000 }, 
+              hourly: { used: 0, max: tier === "pro" ? 500000 : 150000 } 
+            };
+            if (tRes?.success) initialTokens = tRes.data;
+
+            chrome.storage.local.set({ 
+              authToken: sessionToken, 
+              googleToken: googleToken, 
+              userEmail: email 
+            }, () => {
+              setAuthToken(sessionToken);
+              setUserEmail(email);
+              setTokenLimit(initialTokens);
+              showToast("Successfully signed in!", "success");
+            });
           });
         });
       });
-    });
+    };
+
+    // 1. First attempt launchWebAuthFlow with prompt=select_account to let user choose their account
+    try {
+      const manifest = chrome.runtime.getManifest();
+      const clientId = manifest.oauth2?.client_id || "937512875224-seerejuh2cdi4hbfvvn5coaoh7m6j65b.apps.googleusercontent.com";
+      const redirectUri = chrome.identity.getRedirectURL();
+      const scopes = encodeURIComponent((manifest.oauth2?.scopes || [
+        "https://www.googleapis.com/auth/userinfo.email",
+        "https://www.googleapis.com/auth/userinfo.profile"
+      ]).join(" "));
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&prompt=select_account`;
+
+      chrome.identity.launchWebAuthFlow({ url: authUrl, interactive: true }, (redirectResponse) => {
+        if (!chrome.runtime.lastError && redirectResponse) {
+          const m = redirectResponse.match(/[#&]access_token=([^&]+)/);
+          if (m && m[1]) {
+            onGoogleTokenReceived(m[1]);
+            return;
+          }
+        }
+        // Fallback to getAuthToken if launchWebAuthFlow fails (e.g. redirect URI not configured for current ID)
+        console.log("launchWebAuthFlow fallback to getAuthToken:", chrome.runtime.lastError?.message);
+        chrome.identity.getAuthToken({ interactive: true }, (token) => {
+          if (chrome.runtime.lastError || !token) {
+            console.error("Login failed", chrome.runtime.lastError);
+            showToast("Login failed: " + (chrome.runtime.lastError?.message || "Unknown error"), "error");
+            return;
+          }
+          onGoogleTokenReceived(token);
+        });
+      });
+    } catch (err) {
+      chrome.identity.getAuthToken({ interactive: true }, (token) => {
+        if (chrome.runtime.lastError || !token) {
+          showToast("Login failed: " + (chrome.runtime.lastError?.message || "Unknown error"), "error");
+          return;
+        }
+        onGoogleTokenReceived(token);
+      });
+    }
   };
 
   const refreshTokens = async () => {
     setIsRefreshingTokens(true);
-    chrome.runtime.sendMessage({ type: "FETCH_TOKENS", token: authToken, baseUrl: baseUrl || "https://bilinil.vercel.app" }, (res) => {
+    const targetBaseUrl = baseUrl || "https://bilinil.vercel.app";
+    chrome.runtime.sendMessage({ type: "FETCH_TOKENS", token: authToken, baseUrl: targetBaseUrl }, (res) => {
       if (res?.success) {
         setTokenLimit(res.data);
         showToast("Token count refreshed", "success");
+        setIsRefreshingTokens(false);
+      } else if (res?.error && res.error.includes("401")) {
+        // Silently attempt background renewal
+        console.log("Token 401, attempting silent background renewal...");
+        chrome.identity.getAuthToken({ interactive: false }, (newGoogleToken) => {
+          if (newGoogleToken) {
+            chrome.runtime.sendMessage({
+              type: "CREATE_SESSION",
+              googleToken: newGoogleToken,
+              baseUrl: targetBaseUrl
+            }, (sessRes) => {
+              if (sessRes?.success && sessRes.data?.sessionToken) {
+                const newSession = sessRes.data.sessionToken;
+                chrome.storage.local.set({ authToken: newSession, googleToken: newGoogleToken });
+                setAuthToken(newSession);
+                chrome.runtime.sendMessage({ type: "FETCH_TOKENS", token: newSession, baseUrl: targetBaseUrl }, (retryRes) => {
+                  if (retryRes?.success) {
+                    setTokenLimit(retryRes.data);
+                    showToast("Token count refreshed", "success");
+                  } else {
+                    showToast("Session expired. Please sign in again.", "error");
+                  }
+                  setIsRefreshingTokens(false);
+                });
+                return;
+              }
+              showToast("Session expired. Please sign in again.", "error");
+              setIsRefreshingTokens(false);
+            });
+          } else {
+            showToast("Session expired. Please sign in again.", "error");
+            setIsRefreshingTokens(false);
+          }
+        });
       } else {
         showToast("Failed to refresh tokens: " + (res?.error || "Unknown error"), "error");
+        setIsRefreshingTokens(false);
       }
-      setIsRefreshingTokens(false);
     });
   };
 
   const signOut = () => {
-    chrome.identity.removeCachedAuthToken({ token: authToken }, () => {
-      chrome.storage.local.remove(["authToken", "userEmail"], () => {
+    chrome.storage.local.get(["authToken", "googleToken"], (storage) => {
+      const gToken = storage.googleToken;
+      const sToken = storage.authToken;
+
+      // 1. Revoke the Google token at Google OAuth servers so Google forgets consent & prompts next time
+      if (gToken) {
+        fetch(`https://accounts.google.com/o/oauth2/revoke?token=${gToken}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" }
+        }).catch(() => {});
+
+        chrome.identity.removeCachedAuthToken({ token: gToken }, () => {});
+      }
+      if (sToken) {
+        chrome.identity.removeCachedAuthToken({ token: sToken }, () => {});
+      }
+
+      // 2. Clear all cached tokens from Chrome's identity API if supported
+      if ((chrome.identity as any)?.clearAllCachedAuthTokens) {
+        try {
+          (chrome.identity as any).clearAllCachedAuthTokens(() => {});
+        } catch {}
+      }
+
+      // 3. Clear local storage
+      chrome.storage.local.remove(["authToken", "googleToken", "userEmail"], () => {
         setAuthToken("");
         setUserEmail("");
         setTokenLimit(null);
