@@ -694,10 +694,10 @@ export default function SidePanel() {
       </div>
 
       <div className="hands-header">
-        <div className="hands-logo" style={{ cursor: 'pointer' }} onClick={() => setIsSidebarOpen(true)}>
+        <div className="hands-logo" style={{ cursor: 'pointer', gap: '0px' }} onClick={() => setIsSidebarOpen(true)}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-          <HandsLogo animated={false} className="hands-header-logo" style={{ width: '22px', height: '22px', marginLeft: '8px' }} />
-          <span className="hands-logo-name" style={{ marginLeft: '4px' }}>Hands</span>
+          <HandsLogo animated={false} className="hands-header-logo" style={{ width: '22px', height: '22px', marginLeft: '10px' }} />
+          <span className="hands-logo-name" style={{ marginLeft: '3px' }}>Hands</span>
         </div>
         <div className="hands-header-actions">
           <button
