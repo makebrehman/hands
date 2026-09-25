@@ -378,7 +378,8 @@ export default function SidePanel() {
     });
 
     chrome.storage.local.set({ streamBuffer: "", streamDone: false, streamStatus: "", streamScreenshot: null }, () => {
-      chrome.runtime.sendMessage({ type: "CHAT", text, images: imagesToSend, chatId })
+      const taskId = generateId()
+      chrome.runtime.sendMessage({ type: "CHAT", text, images: imagesToSend, chatId, taskId })
       startPolling()
     })
   }
@@ -681,7 +682,8 @@ export default function SidePanel() {
     });
 
     chrome.storage.local.set({ streamBuffer: "", streamDone: false, streamStatus: "", streamScreenshot: null }, () => {
-      chrome.runtime.sendMessage({ type: "RETRY_CHAT" })
+      const taskId = generateId()
+      chrome.runtime.sendMessage({ type: "RETRY_CHAT", taskId })
       startPolling()
     });
   }

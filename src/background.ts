@@ -45,6 +45,8 @@ interface AgentState {
   cancelRequested: boolean
   abortController: AbortController | null
   scratchpad: string
+  activeChatId?: string
+  activeTaskId?: string
   consecutiveFailures?: number
   lastFailedAction?: string
 }
@@ -628,9 +630,10 @@ async function callLLMAI(
         model: targetModel,
         messages: messagesToSend,
         stream: true,
-        reasoning: { effort: "medium" },
         max_tokens: 4096,
-        temperature: 0.3
+        temperature: 0.3,
+        chatId: state.activeChatId,
+        taskId: state.activeTaskId
       }),
       signal: state.abortController?.signal
     });
@@ -1935,7 +1938,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message.type === "CHAT") {
-    const { text, images } = message
+    const { text, images, chatId, taskId } = message
+    if (chatId) state.activeChatId = chatId;
+    if (taskId) state.activeTaskId = taskId;
 
     // In-memory accumulator to avoid race conditions on rapid chunk writes
     let localBuffer = ""
