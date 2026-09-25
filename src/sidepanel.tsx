@@ -27,11 +27,33 @@ interface ChatMessage {
   isStreaming?: boolean
   isError?: boolean
   isMissingByokKey?: boolean
+  milestones?: string[]
 }
 
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).substring(2);
 }
+
+const MilestoneCheck = () => (
+  <svg viewBox="0 0 24 24" style={{ width: '18px', height: '18px', minWidth: '18px', flexShrink: 0, marginTop: '2px' }}>
+    <circle cx="12" cy="12" r="10" fill="#10a37f" />
+    <path d="M8 12.5L11 15.5L16 9" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+  </svg>
+)
+
+const renderMilestones = (milestones: string[]) => {
+  if (!milestones || milestones.length === 0) return null;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '8px' }}>
+      {milestones.map((m, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', color: 'var(--text)' }}>
+          <MilestoneCheck />
+          <span style={{ fontSize: '13.5px', lineHeight: '1.5' }}>{m}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export default function SidePanel() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -71,6 +93,7 @@ export default function SidePanel() {
 
   // Streaming State (Active Buffer)
   const [activeStream, setActiveStream] = useState("")
+  const [activeMilestones, setActiveMilestones] = useState<string[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamError, setStreamError] = useState(false)
   const [streamScreenshot, setStreamScreenshot] = useState<string | null>(null)
@@ -145,7 +168,7 @@ export default function SidePanel() {
       if (storage.authToken) {
         setAuthToken(storage.authToken)
         
-        const targetBaseUrl = storage.baseUrl || "https://bilinil.vercel.app";
+        const targetBaseUrl = "https://bilinil.vercel.app";
         let initialTokens = { weekly: {used: 0, max: 1250000}, hourly: {used: 0, max: 500000} };
         chrome.runtime.sendMessage({ 
           type: "FETCH_TOKENS", 
@@ -234,13 +257,20 @@ export default function SidePanel() {
     let lastBuffer = ""
 
     pollingRef.current = setInterval(async () => {
-      const result = await chrome.storage.local.get(["streamBuffer", "streamDone", "streamStatus", "streamScreenshot"])
+      const result = await chrome.storage.local.get(["streamBuffer", "streamDone", "streamStatus", "streamScreenshot", "streamActions"])
 
       if (result.streamStatus) setStatus(result.streamStatus)
 
       if (result.streamBuffer !== undefined && result.streamBuffer !== lastBuffer) {
         lastBuffer = result.streamBuffer
         setActiveStream(result.streamBuffer)
+      }
+
+      if (result.streamActions && Array.isArray(result.streamActions)) {
+         const miles = result.streamActions
+             .filter(a => a.user_update && a.user_update.trim().length > 0)
+             .map(a => a.user_update.trim());
+         setActiveMilestones(miles);
       }
 
       if (result.streamScreenshot) {
@@ -286,13 +316,17 @@ export default function SidePanel() {
           }
         }
         
-        if (clean.length > 0 || streamScreenshot) {
+        const finalMilestones = result.streamActions ? result.streamActions.filter(a => a.user_update && a.user_update.trim().length > 0).map(a => a.user_update.trim()) : [];
+        
+        if (clean.length > 0 || streamScreenshot || finalMilestones.length > 0) {
             setMessages(prev => [...prev, { 
                 role: "assistant", 
                 text: clean,
-                screenshot: streamScreenshot || undefined
+                screenshot: streamScreenshot || undefined,
+                milestones: finalMilestones
             }])
         }
+        setActiveMilestones([])
       }
     }, 100)
   }
@@ -465,7 +499,7 @@ export default function SidePanel() {
     const onGoogleTokenReceived = (googleToken: string) => {
       chrome.runtime.sendMessage({ type: "FETCH_USER_INFO", token: googleToken }, (infoRes) => {
         const email = infoRes?.success ? (infoRes.data?.email || "") : "";
-        const targetBaseUrl = baseUrl || "https://bilinil.vercel.app";
+        const targetBaseUrl = "https://bilinil.vercel.app";
 
         // Exchange Google access token for 30-day Hands Session JWT
         chrome.runtime.sendMessage({
@@ -529,7 +563,7 @@ export default function SidePanel() {
 
   const refreshTokens = async () => {
     setIsRefreshingTokens(true);
-    const targetBaseUrl = baseUrl || "https://bilinil.vercel.app";
+    const targetBaseUrl = "https://bilinil.vercel.app";
     chrome.runtime.sendMessage({ type: "FETCH_TOKENS", token: authToken, baseUrl: targetBaseUrl }, (res) => {
       if (res?.success) {
         setTokenLimit(res.data);
@@ -1140,7 +1174,10 @@ export default function SidePanel() {
                       </>
                     )
                   ) : (
-                    msg.text ? <MessageContent text={msg.text} /> : null
+                    <>
+                      {msg.milestones && msg.milestones.length > 0 && renderMilestones(msg.milestones)}
+                      {msg.text ? <MessageContent text={msg.text} /> : null}
+                    </>
                   )}
                 </div>
               </div>
@@ -1159,6 +1196,7 @@ export default function SidePanel() {
                       <span>{status || "Thinking..."}</span>
                     </span>
                   </div>
+                  {activeMilestones && activeMilestones.length > 0 && renderMilestones(activeMilestones)}
                   {activeStream ? <MessageContent text={activeStream} /> : null}
                 </div>
               </div>
@@ -1308,3 +1346,4 @@ function MessageContent({ text }: { text: string }) {
     </div>
   )
 }
+
