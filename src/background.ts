@@ -762,7 +762,7 @@ async function actionClick(x: number, y: number) {
   await cdpSend("Input.dispatchMouseEvent", { type: "mouseReleased", button: "left", clickCount: 1, x, y });
   
   await new Promise(r => setTimeout(r, 600));
-  return Clicked at (, ) using human mouse-trail;
+  return `Clicked at (${x}, ${y}) using human mouse-trail`;
 }
 
 async function actionClickElement(id: number) {
