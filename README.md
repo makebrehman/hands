@@ -1,33 +1,37 @@
-This is a [Plasmo extension](https://docs.plasmo.com/) project bootstrapped with [`plasmo init`](https://www.npmjs.com/package/plasmo).
+# Hands Agent Extension
 
-## Getting Started
+**Hands** is a stealth, strategic browser execution engine. It acts as an autonomous AI agent that lives directly inside your browser, interacting with the web exactly like a human does—clicking, scrolling, typing, and reasoning through complex workflows.
 
-First, run the development server:
+## 🛡️ Trust & Security Statement
 
-```bash
-pnpm dev
-# or
+We believe that any AI agent with the power to control your browser must be completely transparent. We have made the source code for the Hands Agent Extension **Source-Available** so that security researchers, developers, and users can independently verify exactly what data is being accessed and how it is processed. We have absolutely nothing to hide.
+
+## 🚀 Getting Started
+
+First, install dependencies and run the development server:
+
+`ash
+npm install
 npm run dev
-```
+`
 
-Open your browser and load the appropriate development build. For example, if you are developing for the chrome browser, using manifest v3, use: `build/chrome-mv3-dev`.
+Open your Chrome browser, go to chrome://extensions, enable **Developer mode**, and select **Load unpacked**. Select the uild/chrome-mv3-dev directory.
 
-You can start editing the popup by modifying `popup.tsx`. It should auto-update as you make changes. To add an options page, simply add a `options.tsx` file to the root of the project, with a react component default exported. Likewise to add a content page, add a `content.ts` file to the root of the project, importing some module and do some logic, then reload the extension on your browser.
+To make a production build, run:
 
-For further guidance, [visit our Documentation](https://docs.plasmo.com/)
-
-## Making production build
-
-Run the following:
-
-```bash
-pnpm build
-# or
+`ash
 npm run build
-```
+`
 
-This should create a production bundle for your extension, ready to be zipped and published to the stores.
+## ⚖️ Licensing & Commercial Use
 
-## Submit to the webstores
+**Hands Agent Extension is Source-Available under the Business Source License (BSL 1.1).**
 
-The easiest way to deploy your Plasmo extension is to use the built-in [bpp](https://bpp.browser.market) GitHub action. Prior to using this action however, make sure to build your extension and upload the first version to the store to establish the basic credentials. Then, simply follow [this setup instruction](https://docs.plasmo.com/framework/workflows/submit) and you should be on your way for automated submission!
+We believe in transparency, so you are free to read, audit, and compile this code for personal use or internal testing. However, **you are strictly prohibited from using this codebase to offer a competing commercial AI service, resell it, rebrand it, or embed it into a commercial product.** 
+
+Please see the [LICENSE](./LICENSE) file for the exact legal terms.
+
+### 💼 Commercial Sales & Exemptions
+Want to embed the Hands Agent Extension into your own commercial application, enterprise platform, or SaaS product? 
+
+Contact us at **sales@bilinil.com** to purchase a Commercial Exemption License.
