@@ -126,7 +126,7 @@ export default function SidePanel() {
         setIsLoading(false)
         setIsStreaming(false)
         setStatus("Failed")
-        chrome.storage.local.set({ streamBuffer: "", streamDone: false, streamStatus: "", streamScreenshot: null })
+        chrome.storage.local.set({ streamDone: true, streamStatus: "Failed" })
         
         chrome.storage.local.get(["useCustomProvider"], (s) => {
           const isCustom = !!s.useCustomProvider;
@@ -289,7 +289,7 @@ export default function SidePanel() {
         if (result.streamStatus === "Failed") {
           setStatus("Failed")
           setStreamError(true)
-          chrome.storage.local.set({ streamBuffer: "", streamDone: false, streamStatus: "", streamScreenshot: null })
+          chrome.storage.local.set({ streamDone: true, streamStatus: "Failed" })
           
           chrome.storage.local.get(["useCustomProvider"], (s) => {
             const isCustom = !!s.useCustomProvider;
