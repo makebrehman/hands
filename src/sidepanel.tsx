@@ -1187,7 +1187,7 @@ export default function SidePanel() {
               </div>
             ))}
 
-            {isStreaming && (
+            {(isStreaming || (streamError && activeStream)) && (
               <div className="hands-msg hands-msg-assistant">
                 <div className="hands-msg-bubble">
                   <div style={{ marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
