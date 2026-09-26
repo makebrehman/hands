@@ -134,12 +134,14 @@ export default function SidePanel() {
           const isTrafficError = msg.error && (msg.error.includes("heavy traffic") || msg.error.includes("rate limits"));
           const errMsg = isCustom || isQuotaError || isTrafficError ? (msg.error || "Failed to communicate with AI provider") : "Hands Super model is currently experiencing heavy load or network issues. Please try again in a moment.";
           showToast(errMsg, "error");
-          setMessages(prev => [...prev, {
-            role: "assistant",
-            isError: true,
-            text: errMsg,
-            screenshot: streamScreenshot || undefined
-          }]);
+          const finalMilestones = result.streamActions ? result.streamActions.filter((a: any) => a.user_update && a.user_update.trim().length > 0).map((a: any) => a.user_update.trim()) : [];
+              setMessages(prev => [...prev, { 
+                role: "assistant", 
+                isError: true, 
+                text: errMsg,
+                screenshot: streamScreenshot || undefined,
+                milestones: finalMilestones
+              }]);
         });
       }
     }
